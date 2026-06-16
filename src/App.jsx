@@ -17,8 +17,6 @@ function App() {
   });
 
   const videoRef = useRef(null);
-  const tiempoRef = useRef(null);
-  const selectorArchivoRef = useRef(null);
 
   // 1. Cargar videos con Auto-Inyección de emergencia si está vacía
   useEffect(() => {
@@ -30,8 +28,6 @@ function App() {
           throw new Error(`Error de Supabase (Código ${error.code}): ${error.message}`);
         }
 
-        // SALVAVIDAS: Si la tabla de verdad está vacía, creamos el primer video automáticamente
-        // Esto soluciona el error de RLS al desactivarlo por fin en la web.
         if (!data || data.length === 0) {
           console.log("Tabla vacía detectada. Inyectando video de prueba...");
 
@@ -68,25 +64,36 @@ function App() {
     obtenerVideos();
   }, []);
 
-  // 2. Manejar el temporizador y la barra de progreso
-  useEffect(() => {
-    if (cargando || listaVideos.length === 0) return;
+  // 2. Controlar la barra de progreso basándonos en los últimos 6 segundos reales del video
+  const controlarProgresoVideo = () => {
+    const video = videoRef.current;
+    if (!video || isNaN(video.duration)) return;
 
-    setProgreso(0);
+    const tiempoRestante = video.duration - video.currentTime;
 
-    tiempoRef.current = setInterval(() => {
-      setProgreso((prev) => {
-        if (prev >= 100) {
-          clearInterval(tiempoRef.current);
-          alTerminarTiempoAutomatico();
-          return 100;
-        }
-        return prev + 1.6;
-      });
-    }, 100);
+    if (tiempoRestante <= 6) {
+      // Calculamos el porcentaje de avance en base a esos 6 segundos finales
+      const tiempoTranscurridoEnSeisSeg = 6 - tiempoRestante;
+      const porcentaje = (tiempoTranscurridoEnSeisSeg / 6) * 100;
+      setProgreso(porcentaje);
+    } else {
+      // Si todavía falta más de 6 segundos, la barra se queda en 0
+      setProgreso(0);
+    }
+  };
 
-    return () => clearInterval(tiempoRef.current);
-  }, [indiceActual, cargando, listaVideos]);
+  // 3. Cuando el video termina por completo, se gatilla el cambio de algoritmo
+  const alTerminarVideoCompleto = () => {
+    const videoPrincipal = listaVideos[indiceActual];
+    const catActual = videoPrincipal.categoria;
+    
+    // Le sumamos puntos a la categoría porque el usuario se quedó hasta el final de todo
+    setIntereses(prev => ({ ...prev, [catActual]: prev[catActual] + 5 }));
+    
+    // Saltamos al siguiente video de la izquierda automáticamente
+    const indexIzquierda = (indiceActual + 1) % listaVideos.length;
+    cambiarVideo(indexIzquierda);
+  };
 
   const manejarSubidaVideo = async (event) => {
     if (!event.target.files || event.target.files.length === 0) return;
@@ -142,18 +149,12 @@ function App() {
   const previewDerecha = listaVideos[indexDerecha];
 
   const elegirManual = (nuevoIndice, categoriaElegida) => {
-    clearInterval(tiempoRef.current);
     setIntereses(prev => ({ ...prev, [categoriaElegida]: prev[categoriaElegida] + 10 }));
     cambiarVideo(nuevoIndice);
   };
 
-  const alTerminarTiempoAutomatico = () => {
-    const catActual = videoPrincipal.categoria;
-    setIntereses(prev => ({ ...prev, [catActual]: prev[catActual] + 5 }));
-    cambiarVideo(indexIzquierda);
-  };
-
   const cambiarVideo = (nuevoIndice) => {
+    setProgreso(0); // Reseteamos la barrita verde al cambiar
     setIndiceActual(nuevoIndice);
     if (videoRef.current) {
       videoRef.current.pause();
@@ -193,6 +194,8 @@ function App() {
         playsInline
         controls
         preload="metadata"
+        onTimeUpdate={controlarProgresoVideo} // Escucha el tiempo para activar la barra al final
+        onEnded={alTerminarVideoCompleto} // Pasa de video solo cuando termina de verdad
         onClick={() => {
           if (videoRef.current) {
             videoRef.current.muted = false;
@@ -209,14 +212,10 @@ function App() {
           <img src={previewIzquierda.url_preview} alt="Preview Izq" />
         </div>
 
-        {/* =============================================================
-            NUEVA BOTONERA DOBLE VERTICAL APILADA (Design por César)
-            Arriba: Grabar (Círculo Rojo REC)
-            Abajo: Carpeta (Galería)
-           ============================================================= */}
+        {/* BOTONERA VERTICAL APILADA */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', zIndex: 15 }}>
           
-          {/* BOTÓN SUPERIOR: CÁMARA EN VIVO (Círculo blanco con punto rojo REC) */}
+          {/* BOTÓN SUPERIOR: CÁMARA (REC Circular) */}
           <div style={{ position: 'relative', width: '48px', height: '48px' }}>
             <button
               type="button"
@@ -235,7 +234,7 @@ function App() {
             <input
               type="file"
               accept="video/*"
-              capture="environment" /* Fuerza la filmadora */
+              capture="environment"
               onChange={manejarSubidaVideo}
               disabled={subiendo}
               style={{
@@ -245,7 +244,7 @@ function App() {
             />
           </div>
 
-          {/* BOTÓN INFERIOR: GALERÍA (Botón blanco con carpeta) */}
+          {/* BOTÓN INFERIOR: GALERÍA (Carpeta) */}
           <div style={{ position: 'relative', width: '48px', height: '48px' }}>
             <button
               type="button"
@@ -270,7 +269,6 @@ function App() {
           </div>
 
         </div>
-        {/* ============================================================== */}
 
         {/* Vista previa Derecha */}
         <div className="tarjeta-preview" onClick={() => elegirManual(indexDerecha, previewDerecha.categoria)}>
