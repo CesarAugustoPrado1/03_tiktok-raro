@@ -73,9 +73,25 @@ function App() {
   }, [indiceActual, cargando, listaVideos]);
 
   // Función para manejar la grabación/subida de videos desde el dispositivo
+  // Función para manejar la grabación/subida de videos desde el dispositivo
   const manejarSubidaVideo = async (event) => {
     const archivo = event.target.files[0];
-    if (!archivo) return;
+
+    // TRUCO PRO: Si el usuario toca el botón pero no seleccionó archivo, 
+    // intentamos disparar la cámara pidiendo permiso de hardware directamente.
+    if (!archivo) {
+      try {
+        // Esto obliga a Chrome a pedir el permiso de cámara que te falta
+        const stream Temporal = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        // Si nos da el permiso, lo apagamos al toque porque solo queríamos la autorización
+        streamTemporal.getTracks().forEach(track => track.stop());
+        alert("¡Permiso de cámara concedido! Volvé a tocar el botón '+' para grabar.");
+      } catch (permissionError) {
+        console.error("Permiso denegado o no soportado:", permissionError);
+        alert("Para grabar en vivo, activa el permiso de cámara en los ajustes de tu navegador.");
+      }
+      return;
+    }
 
     try {
       setSubiendo(true);
