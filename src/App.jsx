@@ -7,6 +7,9 @@ function App() {
   const [cargando, setCargando] = useState(true);
   const [errorApp, setErrorApp] = useState(null);
 
+  // Estado para controlar la carga de nuevos videos a Supabase
+  const [subiendo, setSubiendo] = useState(false);
+
   // Estado para controlar el progreso de la barra (de 0 a 100)
   const [progreso, setProgreso] = useState(0);
 
@@ -69,6 +72,57 @@ function App() {
     return () => clearInterval(tiempoRef.current);
   }, [indiceActual, cargando, listaVideos]);
 
+  // Función para manejar la grabación/subida de videos desde el dispositivo
+  const manejarSubidaVideo = async (event) => {
+    const archivo = event.target.files[0];
+    if (!archivo) return;
+
+    try {
+      setSubiendo(true);
+      alert("¡Video seleccionado con éxito! Subiendo a la nube, esperá un momento...");
+
+      // Generar un nombre único para evitar duplicados en el Storage
+      const nombreArchivo = `${Date.now()}_${archivo.name}`;
+
+      // 1. Subir el archivo al bucket 'videos' en Supabase Storage
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('videos')
+        .upload(nombreArchivo, archivo);
+
+      if (storageError) throw storageError;
+
+      // 2. Obtener la URL pública oficial del video almacenado
+      const { data: urlData } = supabase.storage
+        .from('videos')
+        .getPublicUrl(nombreArchivo);
+
+      const urlPublicaVideo = urlData.publicUrl;
+
+      // 3. Insertar el nuevo registro en tu tabla de la base de datos
+      const { error: dbError } = await supabase
+        .from('videos')
+        .insert([
+          { 
+            titulo: 'Video del Usuario',
+            url_video: urlPublicaVideo, 
+            categoria: 'tecnologia', // Categoría inicial por defecto
+            url_preview: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200' // Miniatura genérica temporal
+          }
+        ]);
+
+      if (dbError) throw dbError;
+
+      alert("¡Golazo! Tu video se subió y registró correctamente. La app se actualizará.");
+      window.location.reload(); 
+
+    } catch (error) {
+      console.error("Error completo en la subida:", error);
+      alert("Error al procesar el archivo: " + error.message);
+    } finally {
+      setSubiendo(false);
+    }
+  };
+
   if (errorApp) return <div style={{ color: 'red', padding: '20px' }}>Error: {errorApp}</div>;
   if (cargando) return <div style={{ color: '#00ffcc', textAlign: 'center', marginTop: '20vh' }}>Cargando algoritmo...</div>;
 
@@ -124,9 +178,11 @@ function App() {
         /* LA BARRA DE PROGRESO DEL ALGORITMO */
         .contenedor-linea-tiempo { position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: rgba(255,255,255,0.2); z-index: 20; }
         .linea-progreso { height: 100%; background: #00ffcc; transition: width 0.1s linear; }
-        
-        /* Consola de depuración para ver los puntos en vivo */
-        .consola-algoritmo { position: absolute; top: 95px; left: 20px; right: 20px; background: rgba(0,0,0,0.75); padding: 8px; border-radius: 6px; color: #fff; font-size: 11px; font-family: monospace; z-index: 15; border: 1px solid #333; text-align: left; }
+
+        /* NUEVO BOTÓN FLOTANTE ESTILO TIKTOK PARA CAMARA / SUBIDA */
+        .contenedor-subida { position: absolute; bottom: 205px; left: 0; width: 100%; display: flex; justify-content: center; z-index: 15; }
+        .boton-subida { background-color: #ffffff; color: #000000; padding: 12px 24px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 15px rgba(255,255,255,0.25); display: flex; align-items: center; gap: 8px; transition: transform 0.2s; border: none; }
+        .boton-subida:active { transform: scale(0.95); }
 
         .barra-previews { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; z-index: 10; }
         .tarjeta-preview { width: 110px; height: 150px; background: #222; border-radius: 12px; overflow: hidden; border: 2px solid rgba(255,255,255,0.4); cursor: pointer; position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.6); transition: transform 0.2s; }
@@ -157,6 +213,20 @@ function App() {
         controls
         preload="metadata"
       />
+
+      {/* Interfaz Interactiva de Grabación y Selección de Video */}
+      <div className="contenedor-subida">
+        <label className="boton-subida">
+          {subiendo ? "🔄 Subiendo..." : "➕ Grabar / Subir"}
+          <input 
+            type="file" 
+            accept="video/*" 
+            onChange={manejarSubidaVideo} 
+            style={{ display: 'none' }} 
+            disabled={subiendo}
+          />
+        </label>
+      </div>
 
       {/* Las dos Previews */}
       <div className="barra-previews">
