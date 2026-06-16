@@ -22,6 +22,9 @@ function App() {
     viajes: 5, cine: 5, finanzas: 5, moda: 5, mascotas: 5, educacion: 5
   });
 
+  // [REPARADO] Estado para fijar las previews al inicio de cada video
+  const [previewsFijas, setPreviewsFijas] = useState({ izq: 0, der: 0 });
+
   const videoRef = useRef(null);
   const tiempoEntradaRef = useRef(Date.now());
 
@@ -35,6 +38,14 @@ function App() {
         if (data && data.length > 0) {
           setListaVideos(data);
           setErrorApp(null);
+
+          // Seteamos las primeras previews fijas para el video inicial
+          const iniciales = calcularPreviewsFijasInstantes(data, 0, {
+            futbol: 5, noticias: 5, cocina: 5, tecnologia: 5,
+            autos: 5, fitness: 5, gaming: 5, musica: 5, humor: 5,
+            viajes: 5, cine: 5, finanzas: 5, moda: 5, mascotas: 5, educacion: 5
+          });
+          setPreviewsFijas(iniciales);
         }
       } catch (err) {
         console.error(err);
@@ -68,54 +79,48 @@ function App() {
       [videoPrincipal.categoria]: (prev[videoPrincipal.categoria] || 0) + 5
     }));
     
-    const { indexIzquierda } = calcularPreviewsInteligentes();
-    cambiarVideo(indexIzquierda);
+    // Avanza directamente al video pactado en el slot izquierdo
+    cambiarVideo(previewsFijas.izq);
   };
 
-  // ALGORITMO REPARADO PARA BASES DE DATOS PEQUEÑAS
-  const calcularPreviewsInteligentes = () => {
-    if (listaVideos.length <= 1) return { indexIzquierda: 0, indexDerecha: 0 };
+  // [REPARADO] Función pura para calcular previews en momentos específicos del ciclo de vida
+  const calcularPreviewsFijasInstantes = (videos, indexActual, puntosInteres) => {
+    if (videos.length <= 1) return { izq: 0, der: 0 };
 
     // 1. Encontrar la categoría con más puntos
     let categoriaFavorita = 'futbol';
     let maxPuntos = -999;
-    Object.keys(intereses).forEach(cat => {
-      if (intereses[cat] > maxPuntos) {
-        maxPuntos = intereses[cat];
+    Object.keys(puntosInteres).forEach(cat => {
+      if (puntosInteres[cat] > maxPuntos) {
+        maxPuntos = puntosInteres[cat];
         categoriaFavorita = cat;
       }
     });
 
-    // 2. FILTRAR IZQUIERDA: Buscar videos de tu categoría favorita (excluyendo el actual)
-    let opcionesIzquierda = listaVideos.map((v, i) => ({ ...v, originalIndex: i }))
-      .filter(v => v.originalIndex !== indiceActual && v.categoria === categoriaFavorita);
+    // 2. FILTRAR IZQUIERDA: Buscar videos de tu favorita
+    let opcionesIzquierda = videos.map((v, i) => ({ ...v, originalIndex: i }))
+      .filter(v => v.originalIndex !== indexActual && v.categoria === categoriaFavorita);
 
-    // Si no hay videos de tu favorita o empatan, abrimos la búsqueda a TODO lo disponible
     if (opcionesIzquierda.length === 0) {
-      opcionesIzquierda = listaVideos.map((v, i) => ({ ...v, originalIndex: i }))
-        .filter(v => v.originalIndex !== indiceActual);
+      opcionesIzquierda = videos.map((v, i) => ({ ...v, originalIndex: i }))
+        .filter(v => v.originalIndex !== indexActual);
     }
-    
-    // Elegimos uno de forma aleatoria para romper el bucle estático
-    const indexIzquierda = opcionesIzquierda[Math.floor(Math.random() * opcionesIzquierda.length)].originalIndex;
+    const izq = opcionesIzquierda[Math.floor(Math.random() * opcionesIzquierda.length)].originalIndex;
 
-    // 3. FILTRAR DERECHA: Cualquier video que no sea el actual Y NO sea el de la izquierda
-    let opcionesDerecha = listaVideos.map((v, i) => ({ ...v, originalIndex: i }))
-      .filter(v => v.originalIndex !== indiceActual && v.originalIndex !== indexIzquierda);
+    // 3. FILTRAR DERECHA: Evitar el actual y el de la izquierda
+    let opcionesDerecha = videos.map((v, i) => ({ ...v, originalIndex: i }))
+      .filter(v => v.originalIndex !== indexActual && v.originalIndex !== izq);
 
-    // Salvavidas por si la base de datos es extremadamente chica (2 videos)
     if (opcionesDerecha.length === 0) {
-      opcionesDerecha = listaVideos.map((v, i) => ({ ...v, originalIndex: i }))
-        .filter(v => v.originalIndex !== indiceActual);
+      opcionesDerecha = videos.map((v, i) => ({ ...v, originalIndex: i }))
+        .filter(v => v.originalIndex !== indexActual);
     }
     
-    // Intentamos dar variedad buscando una categoría distinta a la favorita en la derecha
     const opcionesVariadas = opcionesDerecha.filter(v => v.categoria !== categoriaFavorita);
     const poolFinalDerecha = opcionesVariadas.length > 0 ? opcionesVariadas : opcionesDerecha;
-    
-    const indexDerecha = poolFinalDerecha[Math.floor(Math.random() * poolFinalDerecha.length)].originalIndex;
+    const der = poolFinalDerecha[Math.floor(Math.random() * poolFinalDerecha.length)].originalIndex;
 
-    return { indexIzquierda, indexDerecha };
+    return { izq, der };
   };
 
   const elegirManual = (nuevoIndice, categoriaElegida) => {
@@ -127,16 +132,19 @@ function App() {
     const tiempoPermanencia = (Date.now() - tiempoEntradaRef.current) / 1000;
     const videoAnterior = listaVideos[indiceActual];
     
+    let nuevosIntereses = { ...intereses };
     if (tiempoPermanencia < 3 && videoAnterior) {
-      setIntereses(prev => ({
-        ...prev,
-        [videoAnterior.categoria]: Math.max(0, (prev[videoAnterior.categoria] || 0) - 3)
-      }));
+      nuevosIntereses[videoAnterior.categoria] = Math.max(0, (intereses[videoAnterior.categoria] || 0) - 3);
+      setIntereses(nuevosIntereses);
     }
 
     setProgreso(0);
     tiempoEntradaRef.current = Date.now();
     setIndiceActual(nuevoIndice);
+
+    // [REPARADO] Fijamos las nuevas previews del siguiente video aquí
+    const proximasPreviews = calcularPreviewsFijasInstantes(listaVideos, nuevoIndice, nuevosIntereses);
+    setPreviewsFijas(proximasPreviews);
 
     if (videoRef.current) {
       videoRef.current.pause();
@@ -166,9 +174,10 @@ function App() {
   if (cargando || listaVideos.length === 0) return <div style={{ color: '#00ffcc', textAlign: 'center', marginTop: '20vh' }}>Cargando algoritmo limpio...</div>;
 
   const videoPrincipal = listaVideos[indiceActual];
-  const { indexIzquierda, indexDerecha } = calcularPreviewsInteligentes();
-  const previewIzquierda = listaVideos[indexIzquierda];
-  const previewDerecha = listaVideos[indexDerecha];
+  
+  // [REPARADO] Leemos los datos congelados del estado estable
+  const previewIzquierda = listaVideos[previewsFijas.izq];
+  const previewDerecha = listaVideos[previewsFijas.der];
 
   return (
     <div className="contenedor-tiktok">
@@ -203,7 +212,8 @@ function App() {
       />
 
       <div className="barra-previews">
-        <div className="tarjeta-preview" onClick={() => elegirManual(indexIzquierda, previewIzquierda.categoria)}>
+        {/* [REPARADO] Uso de previews fijas en los clics */}
+        <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)}>
           <span className="badge-categoria">{previewIzquierda.categoria}</span>
           <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
         </div>
@@ -222,7 +232,8 @@ function App() {
           </div>
         </div>
 
-        <div className="tarjeta-preview" onClick={() => elegirManual(indexDerecha, previewDerecha.categoria)}>
+        {/* [REPARADO] Uso de previews fijas en los clics */}
+        <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)}>
           <span className="badge-categoria">{previewDerecha.categoria}</span>
           <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" />
         </div>
