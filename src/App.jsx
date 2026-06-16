@@ -28,21 +28,17 @@ function App() {
   const selectorArchivoRef = useRef(null);
 
   // 1. Cargar videos de Supabase
-  // 1. Cargar videos de Supabase
   useEffect(() => {
     async function obtenerVideos() {
       try {
-        // Hacemos la petición incluyendo un conteo para forzar una respuesta del server
         const { data, error, status, statusText } = await supabase
           .from('videos')
           .select('*');
 
-        // SI SUPABASE DEVUELVE ERROR DE AUTENTICACIÓN O CONFIGURACIÓN
         if (error) {
           throw new Error(`Error de Supabase (Código ${error.code}): ${error.message}`);
         }
 
-        // Si la respuesta fue un estado de error HTTP
         if (status >= 400) {
           throw new Error(`Error de conexión HTTP ${status}: ${statusText}`);
         }
@@ -56,7 +52,6 @@ function App() {
         }
       } catch (err) {
         console.error("Error capturado:", err);
-        // Esto va a pintar el texto exacto del problema en tu pantalla
         setErrorApp(err.message || "Error desconocido de red");
       } finally {
         setCargando(false);
@@ -69,10 +64,8 @@ function App() {
   useEffect(() => {
     if (cargando || listaVideos.length === 0) return;
 
-    // Reseteamos la barra cada vez que cambia el video
     setProgreso(0);
 
-    // Creamos un intervalo que sume progreso cada 100ms (duración total: ~6 segundos)
     tiempoRef.current = setInterval(() => {
       setProgreso((prev) => {
         if (prev >= 100) {
@@ -80,7 +73,7 @@ function App() {
           alTerminarTiempoAutomatico();
           return 100;
         }
-        return prev + 1.6; // Velocidad de llenado
+        return prev + 1.6;
       });
     }, 100);
 
@@ -89,45 +82,48 @@ function App() {
 
   // Función para manejar la grabación/subida de videos desde el dispositivo
   const manejarSubidaVideo = async (event) => {
+    // Validamos que realmente tengamos acceso a los archivos seleccionados
+    if (!event.target.files || event.target.files.length === 0) {
+      return;
+    }
+
     const archivo = event.target.files[0];
-    if (!archivo) return;
 
     try {
       setSubiendo(true);
-      alert("¡Video seleccionado con éxito! Subiendo a la nube, esperá un momento...");
+      alert("¡Video capturado con éxito! Subiendo a Supabase, esperá un momento...");
 
-      // Generar un nombre único para evitar duplicados en el Storage
-      const nombreArchivo = `${Date.now()}_${archivo.name}`;
+      const nombreArchivo = `${Date.now()}_${archivo.name || 'video_movil.mp4'}`;
 
-      // 1. Subir el archivo al bucket 'videos' en Supabase Storage
+      // 1. Subir el archivo al bucket 'videos'
       const { data: storageData, error: storageError } = await supabase.storage
         .from('videos')
         .upload(nombreArchivo, archivo);
 
       if (storageError) throw storageError;
 
-      // 2. Obtener la URL pública oficial del video almacenado
+      // 2. Obtener la URL pública
       const { data: urlData } = supabase.storage
         .from('videos')
         .getPublicUrl(nombreArchivo);
 
       const urlPublicaVideo = urlData.publicUrl;
 
-      // 3. Insertar el nuevo registro en tu tabla de la base de datos
+      // 3. Insertar el registro en la base de datos
       const { error: dbError } = await supabase
         .from('videos')
         .insert([
           {
-            titulo: 'Video del Usuario',
+            titulo: 'Video grabado en vivo',
             url_video: urlPublicaVideo,
-            categoria: 'tecnologia', // Categoría inicial por defecto
-            url_preview: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200' // Miniatura genérica temporal
+            categoria: 'tecnologia',
+            url_preview: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200'
           }
         ]);
 
       if (dbError) throw dbError;
 
-      alert("¡Golazo! Tu video se subió y registró correctamente. La app se actualizará.");
+      alert("¡Golazo! Tu video se grabó y subió correctamente.");
       window.location.reload();
 
     } catch (error) {
@@ -148,29 +144,21 @@ function App() {
   const previewIzquierda = listaVideos[indexIzquierda];
   const previewDerecha = listaVideos[indexDerecha];
 
-  // ACCIÓN 1: El usuario elige manualmente (hace clic abajo)
   const elegirManual = (nuevoIndice, categoriaElegida) => {
     clearInterval(tiempoRef.current);
-
-    // Sumamos puntos a la categoría que el usuario clickeó
     setIntereses(prev => ({
       ...prev,
       [categoriaElegida]: prev[categoriaElegida] + 10
     }));
-
     cambiarVideo(nuevoIndice);
   };
 
-  // ACCIÓN 2: El usuario no tocó nada y se llenó la barra (Interés pasivo)
   const alTerminarTiempoAutomatico = () => {
-    // Le sumamos puntos al video que se quedó mirando completo
     const catActual = videoPrincipal.categoria;
     setIntereses(prev => ({
       ...prev,
       [catActual]: prev[catActual] + 5
     }));
-
-    // El algoritmo decide: va al de la izquierda por defecto, o al que tenga más puntos
     cambiarVideo(indexIzquierda);
   };
 
@@ -190,7 +178,6 @@ function App() {
         .contenedor-tiktok { max-width: 450px; margin: 0 auto; height: 100vh; position: relative; background: #000; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid #222; border-right: 1px solid #222; }
         .reproductor-principal { width: 100%; height: 100vh; object-fit: cover; background-color: #111; display: block; }
         
-        /* LA BARRA DE PROGRESO DEL ALGORITMO */
         .contenedor-linea-tiempo { position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: rgba(255,255,255,0.2); z-index: 20; }
         .linea-progreso { height: 100%; background: #00ffcc; transition: width 0.1s linear; }
 
@@ -202,17 +189,14 @@ function App() {
         .titulo-video { position: absolute; top: 25px; left: 20px; right: 20px; color: #fff; background: rgba(0,0,0,0.6); padding: 12px; border-radius: 8px; font-size: 14px; text-align: center; z-index: 10; backdrop-filter: blur(4px); }
       `}</style>
 
-      {/* Barra de progreso de arriba */}
       <div className="contenedor-linea-tiempo">
         <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
       </div>
 
-      {/* Título */}
       <div className="titulo-video">
         <strong>[{videoPrincipal.categoria.toUpperCase()}]</strong> {videoPrincipal.titulo}
       </div>
 
-      {/* Video con función para activar sonido con un toque */}
       <video
         ref={videoRef}
         className="reproductor-principal"
@@ -233,15 +217,13 @@ function App() {
         }}
       />
 
-      {/* Las dos Previews con la Cruz Flotante Optimizada en el Medio */}
       <div className="barra-previews">
-        {/* Vista previa Izquierda */}
         <div className="tarjeta-preview" onClick={() => elegirManual(indexIzquierda, previewIzquierda.categoria)}>
           <span className="badge-categoria">{previewIzquierda.categoria}</span>
           <img src={previewIzquierda.url_preview} alt="Preview Izq" />
         </div>
 
-        {/* BOTÓN REAL: Dispara el selector nativo sin interferencias visuales */}
+        {/* BOTÓN DEFINITIVO: Llama directo al input nativo */}
         <button
           type="button"
           onClick={() => {
@@ -271,17 +253,17 @@ function App() {
           {subiendo ? "🔄" : "＋"}
         </button>
 
-        {/* Input real pero oculto a la vista */}
+        {/* Input con capture="environment" para forzar la filmadora del celu */}
         <input
           ref={selectorArchivoRef}
           type="file"
           accept="video/*"
+          capture="environment"
           onChange={manejarSubidaVideo}
           style={{ display: 'none' }}
           disabled={subiendo}
         />
 
-        {/* Vista previa Derecha */}
         <div className="tarjeta-preview" onClick={() => elegirManual(indexDerecha, previewDerecha.categoria)}>
           <span className="badge-categoria">{previewDerecha.categoria}</span>
           <img src={previewDerecha.url_preview} alt="Preview Der" />
