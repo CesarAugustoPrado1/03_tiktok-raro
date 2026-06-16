@@ -18,6 +18,7 @@ function App() {
 
   const videoRef = useRef(null);
   const tiempoRef = useRef(null);
+  const selectorArchivoRef = useRef(null);
 
   // 1. Cargar videos con Auto-Inyección de emergencia si está vacía
   useEffect(() => {
@@ -30,6 +31,7 @@ function App() {
         }
 
         // SALVAVIDAS: Si la tabla de verdad está vacía, creamos el primer video automáticamente
+        // Esto soluciona el error de RLS al desactivarlo por fin en la web.
         if (!data || data.length === 0) {
           console.log("Tabla vacía detectada. Inyectando video de prueba...");
 
@@ -207,29 +209,33 @@ function App() {
           <img src={previewIzquierda.url_preview} alt="Preview Izq" />
         </div>
 
-        {/* CONTENEDOR DE BOTONERA DOBLE OPTIMIZADA */}
-        <div style={{ display: 'flex', gap: '14px', alignItems: 'center', zIndex: 15 }}>
+        {/* =============================================================
+            NUEVA BOTONERA DOBLE VERTICAL APILADA (Design por César)
+            Arriba: Grabar (Círculo Rojo REC)
+            Abajo: Carpeta (Galería)
+           ============================================================= */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', zIndex: 15 }}>
           
-          {/* BOTÓN 1: CÁMARA EN VIVO (Círculo blanco con punto rojo REC) */}
-          <div style={{ position: 'relative', width: '50px', height: '50px' }}>
+          {/* BOTÓN SUPERIOR: CÁMARA EN VIVO (Círculo blanco con punto rojo REC) */}
+          <div style={{ position: 'relative', width: '48px', height: '48px' }}>
             <button
               type="button"
               style={{
                 width: '100%', height: '100%', backgroundColor: '#ffffff',
                 borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(255, 0, 85, 0.3)', border: 'none', pointerEvents: 'none'
+                boxShadow: '0 4px 12px rgba(255, 0, 85, 0.4)', border: 'none', pointerEvents: 'none'
               }}
             >
               {subiendo ? (
                 <span style={{ fontSize: '16px' }}>🔄</span>
               ) : (
-                <div style={{ width: '20px', height: '20px', backgroundColor: '#ff0055', borderRadius: '50%' }}></div>
+                <div style={{ width: '18px', height: '18px', backgroundColor: '#ff0055', borderRadius: '50%' }}></div>
               )}
             </button>
             <input
               type="file"
               accept="video/*"
-              capture="environment"
+              capture="environment" /* Fuerza la filmadora */
               onChange={manejarSubidaVideo}
               disabled={subiendo}
               style={{
@@ -239,14 +245,14 @@ function App() {
             />
           </div>
 
-          {/* BOTÓN 2: GALERÍA (Botón blanco con carpeta) */}
-          <div style={{ position: 'relative', width: '50px', height: '50px' }}>
+          {/* BOTÓN INFERIOR: GALERÍA (Botón blanco con carpeta) */}
+          <div style={{ position: 'relative', width: '48px', height: '48px' }}>
             <button
               type="button"
               style={{
                 width: '100%', height: '100%', backgroundColor: '#ffffff', color: '#000000',
                 borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '20px', boxShadow: '0 4px 12px rgba(255,255,255,0.2)', border: 'none', pointerEvents: 'none'
+                fontSize: '18px', boxShadow: '0 4px 12px rgba(255,255,255,0.2)', border: 'none', pointerEvents: 'none'
               }}
             >
               {subiendo ? "🔄" : "📂"}
@@ -264,6 +270,7 @@ function App() {
           </div>
 
         </div>
+        {/* ============================================================== */}
 
         {/* Vista previa Derecha */}
         <div className="tarjeta-preview" onClick={() => elegirManual(indexDerecha, previewDerecha.categoria)}>
