@@ -22,7 +22,7 @@ function App() {
     viajes: 5, cine: 5, finanzas: 5, moda: 5, mascotas: 5, educacion: 5
   });
 
-  // [REPARADO] Estado para fijar las previews al inicio de cada video
+  // Estado para fijar las previews al inicio de cada video
   const [previewsFijas, setPreviewsFijas] = useState({ izq: 0, der: 0 });
 
   const videoRef = useRef(null);
@@ -39,7 +39,6 @@ function App() {
           setListaVideos(data);
           setErrorApp(null);
 
-          // Seteamos las primeras previews fijas para el video inicial
           const iniciales = calcularPreviewsFijasInstantes(data, 0, {
             futbol: 5, noticias: 5, cocina: 5, tecnologia: 5,
             autos: 5, fitness: 5, gaming: 5, musica: 5, humor: 5,
@@ -79,15 +78,12 @@ function App() {
       [videoPrincipal.categoria]: (prev[videoPrincipal.categoria] || 0) + 5
     }));
     
-    // Avanza directamente al video pactado en el slot izquierdo
     cambiarVideo(previewsFijas.izq);
   };
 
-  // [REPARADO] Función pura para calcular previews en momentos específicos del ciclo de vida
   const calcularPreviewsFijasInstantes = (videos, indexActual, puntosInteres) => {
     if (videos.length <= 1) return { izq: 0, der: 0 };
 
-    // 1. Encontrar la categoría con más puntos
     let categoriaFavorita = 'futbol';
     let maxPuntos = -999;
     Object.keys(puntosInteres).forEach(cat => {
@@ -97,7 +93,6 @@ function App() {
       }
     });
 
-    // 2. FILTRAR IZQUIERDA: Buscar videos de tu favorita
     let opcionesIzquierda = videos.map((v, i) => ({ ...v, originalIndex: i }))
       .filter(v => v.originalIndex !== indexActual && v.categoria === categoriaFavorita);
 
@@ -107,7 +102,6 @@ function App() {
     }
     const izq = opcionesIzquierda[Math.floor(Math.random() * opcionesIzquierda.length)].originalIndex;
 
-    // 3. FILTRAR DERECHA: Evitar el actual y el de la izquierda
     let opcionesDerecha = videos.map((v, i) => ({ ...v, originalIndex: i }))
       .filter(v => v.originalIndex !== indexActual && v.originalIndex !== izq);
 
@@ -142,7 +136,6 @@ function App() {
     tiempoEntradaRef.current = Date.now();
     setIndiceActual(nuevoIndice);
 
-    // [REPARADO] Fijamos las nuevas previews del siguiente video aquí
     const proximasPreviews = calcularPreviewsFijasInstantes(listaVideos, nuevoIndice, nuevosIntereses);
     setPreviewsFijas(proximasPreviews);
 
@@ -174,8 +167,6 @@ function App() {
   if (cargando || listaVideos.length === 0) return <div style={{ color: '#00ffcc', textAlign: 'center', marginTop: '20vh' }}>Cargando algoritmo limpio...</div>;
 
   const videoPrincipal = listaVideos[indiceActual];
-  
-  // [REPARADO] Leemos los datos congelados del estado estable
   const previewIzquierda = listaVideos[previewsFijas.izq];
   const previewDerecha = listaVideos[previewsFijas.der];
 
@@ -212,27 +203,47 @@ function App() {
       />
 
       <div className="barra-previews">
-        {/* [REPARADO] Uso de previews fijas en los clics */}
         <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)}>
           <span className="badge-categoria">{previewIzquierda.categoria}</span>
           <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', zIndex: 15 }}>
-          <div style={{ position: 'relative', width: '48px', height: '48px' }}>
-            <button type="button" style={{ width: '100%', height: '100%', backgroundColor: '#ffffff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(255, 0, 85, 0.4)', border: 'none', pointerEvents: 'none' }}>
-              <div style={{ width: '18px', height: '18px', backgroundColor: '#ff0055', borderRadius: '50%' }}></div>
-            </button>
-            <input type="file" accept="video/*" capture="environment" onChange={prepararArchivo} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', borderRadius: '50%' }} />
-          </div>
-
-          <div style={{ position: 'relative', width: '48px', height: '48px' }}>
-            <button type="button" style={{ width: '100%', height: '100%', backgroundColor: '#ffffff', color: '#000000', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', boxShadow: '0 4px 12px rgba(255,255,255,0.2)', border: 'none', pointerEvents: 'none' }}>📂</button>
-            <input type="file" accept="video/mp4,video/webm,video/ogg,video/*" onChange={prepararArchivo} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', borderRadius: '50%' }} />
-          </div>
+        {/* BOTÓN ÚNICO CENTRAL CON UN + (ABRE CÁMARA O GALERÍA DE FORMA NATIVA) */}
+        <div style={{ position: 'relative', width: '56px', height: '56px', zIndex: 15 }}>
+          <button type="button" style={{ 
+            width: '100%', 
+            height: '100%', 
+            backgroundColor: '#00ffcc', 
+            color: '#000000', 
+            borderRadius: '50%', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            fontSize: '28px', 
+            fontWeight: 'bold', 
+            boxShadow: '0 0 15px rgba(0, 255, 204, 0.6)', 
+            border: 'none', 
+            pointerEvents: 'none' 
+          }}>
+            +
+          </button>
+          <input 
+            type="file" 
+            accept="video/*" 
+            onChange={prepararArchivo} 
+            style={{ 
+              position: 'absolute', 
+              top: 0, 
+              left: 0, 
+              width: '100%', 
+              height: '100%', 
+              opacity: 0, 
+              cursor: 'pointer', 
+              borderRadius: '50%' 
+            }} 
+          />
         </div>
 
-        {/* [REPARADO] Uso de previews fijas en los clics */}
         <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)}>
           <span className="badge-categoria">{previewDerecha.categoria}</span>
           <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" />
