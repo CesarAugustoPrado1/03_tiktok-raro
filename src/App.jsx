@@ -224,7 +224,8 @@ function App() {
           <input
             ref={selectorArchivoRef}
             type="file"
-            accept="video/*" // Mantiene el filtro para que solo te muestre videos
+            /* Al especificar formatos reales de video, Android activa el disparador de cámara y el de archivos juntos */
+            accept="video/mp4,video/webm,video/ogg,video/*" 
             onChange={manejarSubidaVideo}
             disabled={subiendo}
             style={{
