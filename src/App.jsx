@@ -102,9 +102,9 @@ function App() {
       const { error: dbError } = await supabase
         .from('videos')
         .insert([
-          { 
+          {
             titulo: 'Video del Usuario',
-            url_video: urlPublicaVideo, 
+            url_video: urlPublicaVideo,
             categoria: 'tecnologia', // Categoría inicial por defecto
             url_preview: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200' // Miniatura genérica temporal
           }
@@ -113,7 +113,7 @@ function App() {
       if (dbError) throw dbError;
 
       alert("¡Golazo! Tu video se subió y registró correctamente. La app se actualizará.");
-      window.location.reload(); 
+      window.location.reload();
 
     } catch (error) {
       console.error("Error completo en la subida:", error);
@@ -136,7 +136,7 @@ function App() {
   // ACCIÓN 1: El usuario elige manualmente (hace clic abajo)
   const elegirManual = (nuevoIndice, categoriaElegida) => {
     clearInterval(tiempoRef.current);
-    
+
     // Sumamos puntos a la categoría que el usuario clickeó
     setIntereses(prev => ({
       ...prev,
@@ -202,30 +202,40 @@ function App() {
         <strong>[{videoPrincipal.categoria.toUpperCase()}]</strong> {videoPrincipal.titulo}
       </div>
 
-      {/* Video */}
-      <video 
+      {/* Video con función para activar sonido con un toque */}
+      <video
         ref={videoRef}
         className="reproductor-principal"
         src={videoPrincipal.url_video}
         autoPlay
-        muted={false}
         playsInline
         controls
         preload="metadata"
+        onClick={() => {
+          if (videoRef.current) {
+            // Al tocar el video, le quitamos el mute por completo
+            videoRef.current.muted = false;
+            // Si estaba pausado lo reproduce, y si no, lo pausa (como TikTok)
+            if (videoRef.current.paused) {
+              videoRef.current.play();
+            } else {
+              videoRef.current.pause();
+            }
+          }
+        }}
       />
 
       {/* Interfaz Interactiva de Grabación y Selección de Video */}
       <div className="contenedor-subida">
         <label className="boton-subida">
           {subiendo ? "🔄 Subiendo..." : "➕ Grabar / Subir"}
-          <input 
-  	    type="file" 
-  	    accept="video/*" 
-  	    capture="user"   {/* ⬅️ AGREGÁ ESTO PARA COMPU/CELU (Cámara frontal) o "environment" para la de atrás */}
-  	    onChange={manejarSubidaVideo} 
-  	    style={{ display: 'none' }} 
-  	    disabled={subiendo}
-	  />
+          <input
+            type="file"
+            accept="video/*"
+            onChange={manejarSubidaVideo}
+            style={{ display: 'none' }}
+            disabled={subiendo}
+          />
         </label>
       </div>
 
