@@ -72,12 +72,10 @@ function App() {
     const tiempoRestante = video.duration - video.currentTime;
 
     if (tiempoRestante <= 6) {
-      // Calculamos el porcentaje de avance en base a esos 6 segundos finales
       const tiempoTranscurridoEnSeisSeg = 6 - tiempoRestante;
       const porcentaje = (tiempoTranscurridoEnSeisSeg / 6) * 100;
       setProgreso(porcentaje);
     } else {
-      // Si todavía falta más de 6 segundos, la barra se queda en 0
       setProgreso(0);
     }
   };
@@ -87,10 +85,8 @@ function App() {
     const videoPrincipal = listaVideos[indiceActual];
     const catActual = videoPrincipal.categoria;
     
-    // Le sumamos puntos a la categoría porque el usuario se quedó hasta el final de todo
     setIntereses(prev => ({ ...prev, [catActual]: prev[catActual] + 5 }));
     
-    // Saltamos al siguiente video de la izquierda automáticamente
     const indexIzquierda = (indiceActual + 1) % listaVideos.length;
     cambiarVideo(indexIzquierda);
   };
@@ -122,7 +118,7 @@ function App() {
             titulo: 'Nuevo Video del Usuario',
             url_video: urlData.publicUrl,
             categoria: 'tecnologia',
-            url_preview: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200'
+            url_preview: 'automatico' // Ya no dependemos de esta columna, pero la dejamos para no romper la DB
           }
         ]);
 
@@ -154,7 +150,7 @@ function App() {
   };
 
   const cambiarVideo = (nuevoIndice) => {
-    setProgreso(0); // Reseteamos la barrita verde al cambiar
+    setProgreso(0);
     setIndiceActual(nuevoIndice);
     if (videoRef.current) {
       videoRef.current.pause();
@@ -172,9 +168,12 @@ function App() {
         .contenedor-linea-tiempo { position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: rgba(255,255,255,0.2); z-index: 20; }
         .linea-progreso { height: 100%; background: #00ffcc; transition: width 0.1s linear; }
         .barra-previews { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; box-sizing: border-box; z-index: 10; }
-        .tarjeta-preview { width: 110px; height: 150px; background: #222; border-radius: 12px; overflow: hidden; border: 2px solid rgba(255,255,255,0.4); cursor: pointer; position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.6); }
-        .tarjeta-preview img { width: 100%; height: 100%; object-fit: cover; }
-        .badge-categoria { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #00ffcc; font-size: 10px; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; }
+        .tarjeta-preview { width: 110px; height: 150px; background: #111; border-radius: 12px; overflow: hidden; border: 2px solid rgba(255,255,255,0.4); cursor: pointer; position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.6); }
+        
+        /* Estilos clave para que el mini-video actúe como una foto fija hermosa */
+        .video-thumbnail { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.85); background: #000; }
+        
+        .badge-categoria { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #00ffcc; font-size: 10px; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; z-index: 5; }
         .titulo-video { position: absolute; top: 25px; left: 20px; right: 20px; color: #fff; background: rgba(0,0,0,0.6); padding: 12px; border-radius: 8px; font-size: 14px; text-align: center; z-index: 10; backdrop-filter: blur(4px); }
       `}</style>
 
@@ -194,8 +193,8 @@ function App() {
         playsInline
         controls
         preload="metadata"
-        onTimeUpdate={controlarProgresoVideo} // Escucha el tiempo para activar la barra al final
-        onEnded={alTerminarVideoCompleto} // Pasa de video solo cuando termina de verdad
+        onTimeUpdate={controlarProgresoVideo}
+        onEnded={alTerminarVideoCompleto}
         onClick={() => {
           if (videoRef.current) {
             videoRef.current.muted = false;
@@ -206,10 +205,19 @@ function App() {
       />
 
       <div className="barra-previews">
-        {/* Vista previa Izquierda */}
+        
+        {/* PREVIEW IZQUIERDA CON VIDEO REAL CONGELADO */}
         <div className="tarjeta-preview" onClick={() => elegirManual(indexIzquierda, previewIzquierda.categoria)}>
           <span className="badge-categoria">{previewIzquierda.categoria}</span>
-          <img src={previewIzquierda.url_preview} alt="Preview Izq" />
+          <video 
+            className="video-thumbnail"
+            src={previewIzquierda.url_video} 
+            muted 
+            playsInline
+            preload="metadata"
+            /* El truco #t=0.5 le avisa al navegador que congele el video en el segundo medio para usarlo de foto */
+            src={`${previewIzquierda.url_video}#t=0.5`}
+          />
         </div>
 
         {/* BOTONERA VERTICAL APILADA */}
@@ -228,7 +236,7 @@ function App() {
               {subiendo ? (
                 <span style={{ fontSize: '16px' }}>🔄</span>
               ) : (
-                <div style={{ width: '18px', height: '18px', backgroundColor: '#ff0055', borderRadius: '50%' }}></div>
+                <div style={{ width: '18px', height: '18px', backgroundColor: '#ff0055', borderRadius: '#50%' }}></div>
               )}
             </button>
             <input
@@ -270,11 +278,19 @@ function App() {
 
         </div>
 
-        {/* Vista previa Derecha */}
+        {/* PREVIEW DERECHA CON VIDEO REAL CONGELADO */}
         <div className="tarjeta-preview" onClick={() => elegirManual(indexDerecha, previewDerecha.categoria)}>
           <span className="badge-categoria">{previewDerecha.categoria}</span>
-          <img src={previewDerecha.url_preview} alt="Preview Der" />
+          <video 
+            className="video-thumbnail"
+            src={previewDerecha.url_video} 
+            muted 
+            playsInline
+            preload="metadata"
+            src={`${previewDerecha.url_video}#t=0.5`}
+          />
         </div>
+
       </div>
     </div>
   );
