@@ -179,12 +179,7 @@ function App() {
         .contenedor-linea-tiempo { position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: rgba(255,255,255,0.2); z-index: 20; }
         .linea-progreso { height: 100%; background: #00ffcc; transition: width 0.1s linear; }
 
-        /* NUEVO BOTÓN FLOTANTE ESTILO TIKTOK PARA CAMARA / SUBIDA */
-        .contenedor-subida { position: absolute; bottom: 205px; left: 0; width: 100%; display: flex; justify-content: center; z-index: 15; }
-        .boton-subida { background-color: #ffffff; color: #000000; padding: 12px 24px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 15px rgba(255,255,255,0.25); display: flex; align-items: center; gap: 8px; transition: transform 0.2s; border: none; }
-        .boton-subida:active { transform: scale(0.95); }
-
-        .barra-previews { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; z-index: 10; }
+        .barra-previews { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; box-sizing: border-box; z-index: 10; }
         .tarjeta-preview { width: 110px; height: 150px; background: #222; border-radius: 12px; overflow: hidden; border: 2px solid rgba(255,255,255,0.4); cursor: pointer; position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.6); transition: transform 0.2s; }
         .tarjeta-preview:hover { transform: scale(1.05); border-color: #00ffcc; }
         .tarjeta-preview img { width: 100%; height: 100%; object-fit: cover; }
@@ -225,10 +220,38 @@ function App() {
         }}
       />
 
-      {/* Interfaz Interactiva de Grabación y Selección de Video */}
-      <div className="contenedor-subida">
-        <label className="boton-subida">
-          {subiendo ? "🔄 Subiendo..." : "➕ Grabar / Subir"}
+      {/* Las dos Previews con la Cruz Flotante Integrada en el Medio */}
+      <div className="barra-previews">
+        {/* Vista previa Izquierda */}
+        <div className="tarjeta-preview" onClick={() => elegirManual(indexIzquierda, previewIzquierda.categoria)}>
+          <span className="badge-categoria">{previewIzquierda.categoria}</span>
+          <img src={previewIzquierda.url_preview} alt="Preview Izq" />
+        </div>
+
+        {/* Botón Cruz Minimalista Estilo TikTok */}
+        <label 
+          style={{
+            width: '54px',
+            height: '54px',
+            backgroundColor: '#ffffff',
+            color: '#000000',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '26px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(255,255,255,0.3)',
+            transition: 'transform 0.1s',
+            userSelect: 'none',
+            zIndex: 15
+          }}
+          onClick={(e) => {
+            if (subiendo) e.preventDefault();
+          }}
+        >
+          {subiendo ? "🔄" : "＋"}
           <input
             type="file"
             accept="video/*"
@@ -237,15 +260,8 @@ function App() {
             disabled={subiendo}
           />
         </label>
-      </div>
 
-      {/* Las dos Previews */}
-      <div className="barra-previews">
-        <div className="tarjeta-preview" onClick={() => elegirManual(indexIzquierda, previewIzquierda.categoria)}>
-          <span className="badge-categoria">{previewIzquierda.categoria}</span>
-          <img src={previewIzquierda.url_preview} alt="Preview Izq" />
-        </div>
-
+        {/* Vista previa Derecha */}
         <div className="tarjeta-preview" onClick={() => elegirManual(indexDerecha, previewDerecha.categoria)}>
           <span className="badge-categoria">{previewDerecha.categoria}</span>
           <img src={previewDerecha.url_preview} alt="Preview Der" />
