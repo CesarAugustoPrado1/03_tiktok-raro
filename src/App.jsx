@@ -33,7 +33,7 @@ function App() {
         // SALVAVIDAS: Si la tabla de verdad está vacía, creamos el primer video automáticamente
         if (!data || data.length === 0) {
           console.log("Tabla vacía detectada. Inyectando video de prueba...");
-          
+
           const { data: nuevaFila, error: errorInsert } = await supabase
             .from('videos')
             .insert([
@@ -49,7 +49,7 @@ function App() {
           if (errorInsert) {
             throw new Error(`No se pudo crear el video automático: ${errorInsert.message}`);
           }
-          
+
           data = nuevaFila;
         }
 
@@ -224,8 +224,7 @@ function App() {
           <input
             ref={selectorArchivoRef}
             type="file"
-            accept="video/*"
-            capture="environment"
+            accept="video/*" // Mantiene el filtro para que solo te muestre videos
             onChange={manejarSubidaVideo}
             disabled={subiendo}
             style={{
