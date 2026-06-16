@@ -208,7 +208,7 @@ function App() {
         className="reproductor-principal"
         src={videoPrincipal.url_video}
         autoPlay
-        muted
+        muted={false}
         playsInline
         controls
         preload="metadata"
@@ -219,12 +219,13 @@ function App() {
         <label className="boton-subida">
           {subiendo ? "🔄 Subiendo..." : "➕ Grabar / Subir"}
           <input 
-            type="file" 
-            accept="video/*" 
-            onChange={manejarSubidaVideo} 
-            style={{ display: 'none' }} 
-            disabled={subiendo}
-          />
+  	    type="file" 
+  	    accept="video/*" 
+  	    capture="user"   {/* ⬅️ AGREGÁ ESTO PARA COMPU/CELU (Cámara frontal) o "environment" para la de atrás */}
+  	    onChange={manejarSubidaVideo} 
+  	    style={{ display: 'none' }} 
+  	    disabled={subiendo}
+	  />
         </label>
       </div>
 
