@@ -23,6 +23,9 @@ function App() {
 
   const videoRef = useRef(null);
   const tiempoRef = useRef(null);
+  
+  // Referencia directa para disparar el selector de archivos multimedia sin intermediarios
+  const selectorArchivoRef = useRef(null);
 
   // 1. Cargar videos de Supabase
   useEffect(() => {
@@ -73,25 +76,9 @@ function App() {
   }, [indiceActual, cargando, listaVideos]);
 
   // Función para manejar la grabación/subida de videos desde el dispositivo
-  // Función para manejar la grabación/subida de videos desde el dispositivo
   const manejarSubidaVideo = async (event) => {
     const archivo = event.target.files[0];
-
-    // TRUCO PRO: Si el usuario toca el botón pero no seleccionó archivo, 
-    // intentamos disparar la cámara pidiendo permiso de hardware directamente.
-    if (!archivo) {
-      try {
-        // Esto obliga a Chrome a pedir el permiso de cámara que te falta
-        const stream Temporal = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        // Si nos da el permiso, lo apagamos al toque porque solo queríamos la autorización
-        streamTemporal.getTracks().forEach(track => track.stop());
-        alert("¡Permiso de cámara concedido! Volvé a tocar el botón '+' para grabar.");
-      } catch (permissionError) {
-        console.error("Permiso denegado o no soportado:", permissionError);
-        alert("Para grabar en vivo, activa el permiso de cámara en los ajustes de tu navegador.");
-      }
-      return;
-    }
+    if (!archivo) return;
 
     try {
       setSubiendo(true);
@@ -224,9 +211,7 @@ function App() {
         preload="metadata"
         onClick={() => {
           if (videoRef.current) {
-            // Al tocar el video, le quitamos el mute por completo
             videoRef.current.muted = false;
-            // Si estaba pausado lo reproduce, y si no, lo pausa (como TikTok)
             if (videoRef.current.paused) {
               videoRef.current.play();
             } else {
@@ -236,7 +221,7 @@ function App() {
         }}
       />
 
-      {/* Las dos Previews con la Cruz Flotante Integrada en el Medio */}
+      {/* Las dos Previews con la Cruz Flotante Optimizada en el Medio */}
       <div className="barra-previews">
         {/* Vista previa Izquierda */}
         <div className="tarjeta-preview" onClick={() => elegirManual(indexIzquierda, previewIzquierda.categoria)}>
@@ -244,8 +229,14 @@ function App() {
           <img src={previewIzquierda.url_preview} alt="Preview Izq" />
         </div>
 
-        {/* Botón Cruz Minimalista Estilo TikTok */}
-        <label
+        {/* BOTÓN REAL: Dispara el selector nativo sin interferencias visuales */}
+        <button
+          type="button"
+          onClick={() => {
+            if (!subiendo && selectorArchivoRef.current) {
+              selectorArchivoRef.current.click();
+            }
+          }}
           style={{
             width: '54px',
             height: '54px',
@@ -261,21 +252,22 @@ function App() {
             boxShadow: '0 4px 15px rgba(255,255,255,0.3)',
             transition: 'transform 0.1s',
             userSelect: 'none',
-            zIndex: 15
-          }}
-          onClick={(e) => {
-            if (subiendo) e.preventDefault();
+            zIndex: 15,
+            border: 'none'
           }}
         >
           {subiendo ? "🔄" : "＋"}
-          <input
-            type="file"
-            accept="video/*"
-            onChange={manejarSubidaVideo}
-            style={{ display: 'none' }}
-            disabled={subiendo}
-          />
-        </label>
+        </button>
+
+        {/* Input real pero oculto a la vista */}
+        <input
+          ref={selectorArchivoRef}
+          type="file"
+          accept="video/*"
+          onChange={manejarSubidaVideo}
+          style={{ display: 'none' }}
+          disabled={subiendo}
+        />
 
         {/* Vista previa Derecha */}
         <div className="tarjeta-preview" onClick={() => elegirManual(indexDerecha, previewDerecha.categoria)}>
