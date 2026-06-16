@@ -28,25 +28,36 @@ function App() {
   const selectorArchivoRef = useRef(null);
 
   // 1. Cargar videos de Supabase
+  // 1. Cargar videos de Supabase
   useEffect(() => {
     async function obtenerVideos() {
       try {
-        const { data, error } = await supabase
+        // Hacemos la petición incluyendo un conteo para forzar una respuesta del server
+        const { data, error, status, statusText } = await supabase
           .from('videos')
           .select('*');
 
-        if (error) throw error;
+        // SI SUPABASE DEVUELVE ERROR DE AUTENTICACIÓN O CONFIGURACIÓN
+        if (error) {
+          throw new Error(`Error de Supabase (Código ${error.code}): ${error.message}`);
+        }
+
+        // Si la respuesta fue un estado de error HTTP
+        if (status >= 400) {
+          throw new Error(`Error de conexión HTTP ${status}: ${statusText}`);
+        }
 
         if (data && data.length > 0) {
-          console.log("¡Videos cargados con éxito desde Supabase!", data);
+          console.log("¡Videos cargados!", data);
           setListaVideos(data);
-          setErrorApp(null); // Limpiamos cualquier error viejo
+          setErrorApp(null);
         } else {
-          setErrorApp("La tabla 'videos' devolvió 0 filas. Verificá que los datos estén guardados.");
+          throw new Error("Supabase respondió OK, pero la tabla está literalmente vacía en este proyecto.");
         }
       } catch (err) {
-        console.error("Error en la petición:", err);
-        setErrorApp(err.message);
+        console.error("Error capturado:", err);
+        // Esto va a pintar el texto exacto del problema en tu pantalla
+        setErrorApp(err.message || "Error desconocido de red");
       } finally {
         setCargando(false);
       }
