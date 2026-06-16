@@ -18,7 +18,6 @@ function App() {
 
   const videoRef = useRef(null);
   const tiempoRef = useRef(null);
-  const selectorArchivoRef = useRef(null);
 
   // 1. Cargar videos con Auto-Inyección de emergencia si está vacía
   useEffect(() => {
@@ -93,7 +92,7 @@ function App() {
 
     try {
       setSubiendo(true);
-      alert("¡Video capturado! Subiendo a la nube...");
+      alert("¡Video detectado! Subiendo a la nube, por favor esperá...");
 
       const nombreArchivo = `${Date.now()}_${archivo.name || 'video.mp4'}`;
 
@@ -120,11 +119,11 @@ function App() {
 
       if (dbError) throw dbError;
 
-      alert("¡Subido con éxito!");
+      alert("¡Golazo! Tu video se subió correctamente.");
       window.location.reload();
 
     } catch (error) {
-      alert("Error: " + error.message);
+      alert("Error en la subida: " + error.message);
     } finally {
       setSubiendo(false);
     }
@@ -202,39 +201,71 @@ function App() {
       />
 
       <div className="barra-previews">
+        {/* Vista previa Izquierda */}
         <div className="tarjeta-preview" onClick={() => elegirManual(indexIzquierda, previewIzquierda.categoria)}>
           <span className="badge-categoria">{previewIzquierda.categoria}</span>
           <img src={previewIzquierda.url_preview} alt="Preview Izq" />
         </div>
 
-        {/* BOTÓN SUPERPUESTO TRANSPARENTE */}
-        <div style={{ position: 'relative', width: '54px', height: '54px', zIndex: 15 }}>
-          <button
-            type="button"
-            style={{
-              width: '100%', height: '100%', backgroundColor: '#ffffff', color: '#000000',
-              borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '26px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(255,255,255,0.3)',
-              border: 'none', pointerEvents: 'none'
-            }}
-          >
-            {subiendo ? "🔄" : "＋"}
-          </button>
+        {/* CONTENEDOR DE BOTONERA DOBLE OPTIMIZADA */}
+        <div style={{ display: 'flex', gap: '14px', alignItems: 'center', zIndex: 15 }}>
+          
+          {/* BOTÓN 1: CÁMARA EN VIVO (Círculo blanco con punto rojo REC) */}
+          <div style={{ position: 'relative', width: '50px', height: '50px' }}>
+            <button
+              type="button"
+              style={{
+                width: '100%', height: '100%', backgroundColor: '#ffffff',
+                borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(255, 0, 85, 0.3)', border: 'none', pointerEvents: 'none'
+              }}
+            >
+              {subiendo ? (
+                <span style={{ fontSize: '16px' }}>🔄</span>
+              ) : (
+                <div style={{ width: '20px', height: '20px', backgroundColor: '#ff0055', borderRadius: '50%' }}></div>
+              )}
+            </button>
+            <input
+              type="file"
+              accept="video/*"
+              capture="environment"
+              onChange={manejarSubidaVideo}
+              disabled={subiendo}
+              style={{
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                opacity: 0, cursor: 'pointer', borderRadius: '50%'
+              }}
+            />
+          </div>
 
-          <input
-            ref={selectorArchivoRef}
-            type="file"
-            /* Al especificar formatos reales de video, Android activa el disparador de cámara y el de archivos juntos */
-            accept="video/mp4,video/webm,video/ogg,video/*" 
-            onChange={manejarSubidaVideo}
-            disabled={subiendo}
-            style={{
-              position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-              opacity: 0, cursor: 'pointer', borderRadius: '50%'
-            }}
-          />
+          {/* BOTÓN 2: GALERÍA (Botón blanco con carpeta) */}
+          <div style={{ position: 'relative', width: '50px', height: '50px' }}>
+            <button
+              type="button"
+              style={{
+                width: '100%', height: '100%', backgroundColor: '#ffffff', color: '#000000',
+                borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '20px', boxShadow: '0 4px 12px rgba(255,255,255,0.2)', border: 'none', pointerEvents: 'none'
+              }}
+            >
+              {subiendo ? "🔄" : "📂"}
+            </button>
+            <input
+              type="file"
+              accept="video/mp4,video/webm,video/ogg,video/*"
+              onChange={manejarSubidaVideo}
+              disabled={subiendo}
+              style={{
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                opacity: 0, cursor: 'pointer', borderRadius: '50%'
+              }}
+            />
+          </div>
+
         </div>
 
+        {/* Vista previa Derecha */}
         <div className="tarjeta-preview" onClick={() => elegirManual(indexDerecha, previewDerecha.categoria)}>
           <span className="badge-categoria">{previewDerecha.categoria}</span>
           <img src={previewDerecha.url_preview} alt="Preview Der" />
