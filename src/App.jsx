@@ -11,9 +11,12 @@ function App() {
   const [errorApp, setErrorApp] = useState(null);
   const [progreso, setProgreso] = useState(0);
 
-  // Estados para delegar el control al componente modal
+  // Estados para delegar el control al componente modal de subida a Supabase
   const [mostrarModal, setMostrarModal] = useState(false);
   const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
+
+  // [NUEVO] Estado para mostrar/ocultar el menú de elección (Cámara vs Galería)
+  const [mostrarMenuOrigen, setMostrarMenuOrigen] = useState(false);
 
   // El cerebro dinámico del algoritmo
   const [intereses, setIntereses] = useState({
@@ -27,6 +30,10 @@ function App() {
 
   const videoRef = useRef(null);
   const tiempoEntradaRef = useRef(Date.now());
+
+  // [NUEVO] Referencias a los inputs invisibles para poder clickearlos por código
+  const inputCamaraRef = useRef(null);
+  const inputGaleriaRef = useRef(null);
 
   // Cargar videos desde la base de datos al iniciar
   useEffect(() => {
@@ -146,6 +153,16 @@ function App() {
     }
   };
 
+  // [NUEVO] El usuario eligió una de las dos opciones del menú intermedio
+  const manejarEleccionOrigen = (tipo) => {
+    setMostrarMenuOrigen(false); // Cierra la ventanita
+    if (tipo === 'camara') {
+      inputCamaraRef.current.click(); // Fuerza la apertura de la cámara real
+    } else if (tipo === 'galeria') {
+      inputGaleriaRef.current.click(); // Fuerza la apertura de la galería/archivos
+    }
+  };
+
   const prepararArchivo = (event) => {
     if (!event.target.files || event.target.files.length === 0) return;
     if (videoRef.current) videoRef.current.pause();
@@ -183,6 +200,79 @@ function App() {
         />
       )}
 
+      {/* [NUEVO] MENÚ FLOTANTE INTERMEDIO DE ELECCIÓN */}
+      {mostrarMenuOrigen && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          zIndex: 100, display: 'flex', justifyContent: 'center', alignItems: 'center'
+        }}>
+          <div style={{
+            backgroundColor: '#1e1e1e',
+            border: '2px solid #00ffcc',
+            borderRadius: '16px',
+            padding: '25px',
+            width: '85%',
+            maxWidth: '320px',
+            textAlign: 'center',
+            boxShadow: '0 0 25px rgba(0, 255, 204, 0.3)'
+          }}>
+            <h3 style={{ color: '#ffffff', margin: '0 0 20px 0', fontSize: '18px', fontFamily: 'sans-serif' }}>
+              ¿Qué querés hacer?
+            </h3>
+            
+            <button 
+              onClick={() => manejarEleccionOrigen('camara')}
+              style={{
+                width: '100%', padding: '14px', marginBottom: '12px',
+                backgroundColor: '#00ffcc', color: '#000000',
+                border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer'
+              }}
+            >
+              🎥 Grabar con Cámara
+            </button>
+
+            <button 
+              onClick={() => manejarEleccionOrigen('galeria')}
+              style={{
+                width: '100%', padding: '14px', marginBottom: '20px',
+                backgroundColor: '#2e2e2e', color: '#ffffff',
+                border: '1px solid #444', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer'
+              }}
+            >
+              📂 Buscar en Galería
+            </button>
+
+            <span 
+              onClick={() => setMostrarMenuOrigen(false)}
+              style={{ color: '#ff0055', fontSize: '14px', cursor: 'pointer', display: 'inline-block', fontWeight: '500' }}
+            >
+              Cancelar
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* INPUTS DE CONTROL INVISIBLES FORZADOS POR REF */}
+      {/* El de cámara lleva capture="environment" sí o sí para obligar al celu a abrir el lente trasero */}
+      <input 
+        type="file" 
+        accept="video/*" 
+        capture="environment" 
+        ref={inputCamaraRef} 
+        onChange={prepararArchivo} 
+        style={{ display: 'none' }} 
+      />
+      {/* El de galería va libre para que explore archivos */}
+      <input 
+        type="file" 
+        accept="video/mp4,video/webm,video/ogg,video/*" 
+        ref={inputGaleriaRef} 
+        onChange={prepararArchivo} 
+        style={{ display: 'none' }} 
+      />
+
       <video
         ref={videoRef}
         className="reproductor-principal"
@@ -208,40 +298,32 @@ function App() {
           <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
         </div>
 
-        {/* BOTÓN ÚNICO CENTRAL CON UN + (ABRE CÁMARA O GALERÍA DE FORMA NATIVA) */}
-        <div style={{ position: 'relative', width: '56px', height: '56px', zIndex: 15 }}>
-          <button type="button" style={{ 
-            width: '100%', 
-            height: '100%', 
-            backgroundColor: '#00ffcc', 
-            color: '#000000', 
-            borderRadius: '50%', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            fontSize: '28px', 
-            fontWeight: 'bold', 
-            boxShadow: '0 0 15px rgba(0, 255, 204, 0.6)', 
-            border: 'none', 
-            pointerEvents: 'none' 
-          }}>
-            +
-          </button>
-          <input 
-            type="file" 
-            accept="video/*" 
-            onChange={prepararArchivo} 
+        {/* BOTÓN ÚNICO CENTRAL: Al tocarlo abre nuestro menú intermedio */}
+        <div style={{ width: '56px', height: '56px', zIndex: 15 }}>
+          <button 
+            type="button" 
+            onClick={() => {
+              if (videoRef.current) videoRef.current.pause();
+              setMostrarMenuOrigen(true);
+            }}
             style={{ 
-              position: 'absolute', 
-              top: 0, 
-              left: 0, 
               width: '100%', 
               height: '100%', 
-              opacity: 0, 
-              cursor: 'pointer', 
-              borderRadius: '50%' 
-            }} 
-          />
+              backgroundColor: '#00ffcc', 
+              color: '#000000', 
+              borderRadius: '50%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              fontSize: '28px', 
+              fontWeight: 'bold', 
+              boxShadow: '0 0 15px rgba(0, 255, 204, 0.6)', 
+              border: 'none', 
+              cursor: 'pointer'
+            }}
+          >
+            +
+          </button>
         </div>
 
         <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)}>
