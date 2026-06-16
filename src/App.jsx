@@ -33,18 +33,19 @@ function App() {
       try {
         const { data, error } = await supabase
           .from('videos')
-          .select('*')
-          .order('id', { ascending: true });
+          .select('*');
 
         if (error) throw error;
 
         if (data && data.length > 0) {
+          console.log("¡Videos cargados con éxito desde Supabase!", data);
           setListaVideos(data);
+          setErrorApp(null); // Limpiamos cualquier error viejo
         } else {
-          throw new Error("No se encontraron filas en la tabla 'videos'.");
+          setErrorApp("La tabla 'videos' devolvió 0 filas. Verificá que los datos estén guardados.");
         }
       } catch (err) {
-        console.error(err);
+        console.error("Error en la petición:", err);
         setErrorApp(err.message);
       } finally {
         setCargando(false);
