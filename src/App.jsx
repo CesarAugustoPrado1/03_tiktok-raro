@@ -229,7 +229,7 @@ function App() {
         </div>
 
         {/* Botón Cruz Minimalista Estilo TikTok */}
-        <label 
+        <label
           style={{
             width: '54px',
             height: '54px',
@@ -255,6 +255,7 @@ function App() {
           <input
             type="file"
             accept="video/*"
+            capture="environment" {/* ⬅️ ESTO ES CLAVE: Le exige a la web que intente encender la filmadora */}
             onChange={manejarSubidaVideo}
             style={{ display: 'none' }}
             disabled={subiendo}
