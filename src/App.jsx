@@ -146,13 +146,6 @@ function App() {
         <strong>[{videoPrincipal.categoria.toUpperCase()}]</strong> {videoPrincipal.titulo}
       </div>
 
-      {/* Consola en pantalla para ver los puntos del algoritmo en vivo */}
-      <div className="consola-algoritmo">
-        <div>📊 Puntos de Interés de César:</div>
-        <div>⚽ Fútbol: {intereses.futbol} | 📰 Noticias: {intereses.noticias}</div>
-        <div>🍳 Cocina: {intereses.cocina} | 💻 Tecno: {intereses.tecnologia}</div>
-      </div>
-
       {/* Video */}
       <video 
         ref={videoRef}
