@@ -72,9 +72,11 @@ function App() {
     cambiarVideo(indexIzquierda);
   };
 
+  // ALGORITMO REPARADO PARA BASES DE DATOS PEQUEÑAS
   const calcularPreviewsInteligentes = () => {
     if (listaVideos.length <= 1) return { indexIzquierda: 0, indexDerecha: 0 };
 
+    // 1. Encontrar la categoría con más puntos
     let categoriaFavorita = 'futbol';
     let maxPuntos = -999;
     Object.keys(intereses).forEach(cat => {
@@ -84,25 +86,34 @@ function App() {
       }
     });
 
+    // 2. FILTRAR IZQUIERDA: Buscar videos de tu categoría favorita (excluyendo el actual)
     let opcionesIzquierda = listaVideos.map((v, i) => ({ ...v, originalIndex: i }))
       .filter(v => v.originalIndex !== indiceActual && v.categoria === categoriaFavorita);
 
+    // Si no hay videos de tu favorita o empatan, abrimos la búsqueda a TODO lo disponible
     if (opcionesIzquierda.length === 0) {
       opcionesIzquierda = listaVideos.map((v, i) => ({ ...v, originalIndex: i }))
         .filter(v => v.originalIndex !== indiceActual);
     }
-    const indexIzquierda = opcionesIzquierda[0].originalIndex;
+    
+    // Elegimos uno de forma aleatoria para romper el bucle estático
+    const indexIzquierda = opcionesIzquierda[Math.floor(Math.random() * opcionesIzquierda.length)].originalIndex;
 
+    // 3. FILTRAR DERECHA: Cualquier video que no sea el actual Y NO sea el de la izquierda
     let opcionesDerecha = listaVideos.map((v, i) => ({ ...v, originalIndex: i }))
       .filter(v => v.originalIndex !== indiceActual && v.originalIndex !== indexIzquierda);
 
+    // Salvavidas por si la base de datos es extremadamente chica (2 videos)
     if (opcionesDerecha.length === 0) {
       opcionesDerecha = listaVideos.map((v, i) => ({ ...v, originalIndex: i }))
         .filter(v => v.originalIndex !== indiceActual);
     }
     
+    // Intentamos dar variedad buscando una categoría distinta a la favorita en la derecha
     const opcionesVariadas = opcionesDerecha.filter(v => v.categoria !== categoriaFavorita);
-    const indexDerecha = opcionesVariadas.length > 0 ? opcionesVariadas[0].originalIndex : opcionesDerecha[0].originalIndex;
+    const poolFinalDerecha = opcionesVariadas.length > 0 ? opcionesVariadas : opcionesDerecha;
+    
+    const indexDerecha = poolFinalDerecha[Math.floor(Math.random() * poolFinalDerecha.length)].originalIndex;
 
     return { indexIzquierda, indexDerecha };
   };
