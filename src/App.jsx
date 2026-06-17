@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import FormularioSubida from './FormularioSubida';
+import Login from './Login'; // Importación del módulo de autenticación independiente
 import './App.css'; // Importación de los estilos independientes
 
 function App() {
@@ -11,11 +12,14 @@ function App() {
   const [errorApp, setErrorApp] = useState(null);
   const [progreso, setProgreso] = useState(0);
 
+  // Estado crítico para almacenar los datos del usuario logueado
+  const [usuario, setUsuario] = useState(null);
+
   // Estados para delegar el control al componente modal de subida a Supabase
   const [mostrarModal, setMostrarModal] = useState(false);
   const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
 
-  // [NUEVO] Estado para mostrar/ocultar el menú de elección (Cámara vs Galería)
+  // Estado para mostrar/ocultar el menú de elección (Cámara vs Galería)
   const [mostrarMenuOrigen, setMostrarMenuOrigen] = useState(false);
 
   // El cerebro dinámico del algoritmo
@@ -31,12 +35,27 @@ function App() {
   const videoRef = useRef(null);
   const tiempoEntradaRef = useRef(Date.now());
 
-  // [NUEVO] Referencias a los inputs invisibles para poder clickearlos por código
+  // Referencias a los inputs invisibles para poder clickearlos por código
   const inputCamaraRef = useRef(null);
   const inputGaleriaRef = useRef(null);
 
-  // Cargar videos desde la base de datos al iniciar
+  // Ciclo de vida: control de sesiones y carga de datos
   useEffect(() => {
+    // 1. Verificar si hay una sesión guardada de antes
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setUsuario(session.user);
+    });
+
+    // 2. Escuchar cambios de autenticación activos (Login, Registro con éxito, Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setUsuario(session.user);
+      } else {
+        setUsuario(null);
+      }
+    });
+
+    // 3. Obtener el catálogo de videos desde Supabase
     async function obtenerVideos() {
       try {
         let { data, error } = await supabase.from('videos').select('*');
@@ -60,7 +79,11 @@ function App() {
         setCargando(false);
       }
     }
+
     obtenerVideos();
+
+    // Limpieza de la escucha al desmontar el componente
+    return () => subscription.unsubscribe();
   }, []);
 
   const controlarProgresoVideo = () => {
@@ -153,13 +176,12 @@ function App() {
     }
   };
 
-  // [NUEVO] El usuario eligió una de las dos opciones del menú intermedio
   const manejarEleccionOrigen = (tipo) => {
-    setMostrarMenuOrigen(false); // Cierra la ventanita
+    setMostrarMenuOrigen(false); 
     if (tipo === 'camara') {
-      inputCamaraRef.current.click(); // Fuerza la apertura de la cámara real
+      inputCamaraRef.current.click(); 
     } else if (tipo === 'galeria') {
-      inputGaleriaRef.current.click(); // Fuerza la apertura de la galería/archivos
+      inputGaleriaRef.current.click(); 
     }
   };
 
@@ -180,8 +202,23 @@ function App() {
     }
   };
 
+  // Función para desloguearse del sistema
+  const manejarLogout = async () => {
+    await supabase.auth.signOut();
+    setUsuario(null);
+  };
+
+  // Renderizados condicionales de control global
   if (errorApp) return <div style={{ color: 'red', padding: '20px' }}>Error: {errorApp}</div>;
-  if (cargando || listaVideos.length === 0) return <div style={{ color: '#00ffcc', textAlign: 'center', marginTop: '20vh' }}>Cargando algoritmo limpio...</div>;
+  if (cargando) return <div style={{ color: '#00ffcc', textAlign: 'center', marginTop: '20vh', fontFamily: 'sans-serif' }}>Iniciando entorno Slik/Orbit...</div>;
+
+  // [GUARDIÁN DE AUTENTICACIÓN] Si no hay usuario activo, salta el Login sin rodeos
+  if (!usuario) {
+    return <Login alLoguearse={(user) => setUsuario(user)} />;
+  }
+
+  // Si pasó el login pero no hay videos subidos
+  if (listaVideos.length === 0) return <div style={{ color: '#00ffcc', textAlign: 'center', marginTop: '20vh' }}>No hay videos en la base de datos...</div>;
 
   const videoPrincipal = listaVideos[indiceActual];
   const previewIzquierda = listaVideos[previewsFijas.izq];
@@ -189,6 +226,20 @@ function App() {
 
   return (
     <div className="contenedor-tiktok">
+      {/* Botón flotante para poder cerrar sesión de forma manual */}
+      <button 
+        onClick={manejarLogout}
+        style={{
+          position: 'fixed', top: '15px', right: '15px', zIndex: 80,
+          backgroundColor: 'rgba(255, 255, 255, 0.15)', color: '#fff',
+          border: '1px solid rgba(255, 255, 255, 0.2)', padding: '6px 12px',
+          borderRadius: '20px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold',
+          backdropFilter: 'blur(5px)'
+        }}
+      >
+        🚪 Salir
+      </button>
+
       <div className="contenedor-linea-tiempo">
         <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
       </div>
@@ -200,7 +251,7 @@ function App() {
         />
       )}
 
-      {/* [NUEVO] MENÚ FLOTANTE INTERMEDIO DE ELECCIÓN */}
+      {/* MENÚ FLOTANTE INTERMEDIO DE ELECCIÓN */}
       {mostrarMenuOrigen && (
         <div style={{
           position: 'fixed',
@@ -255,7 +306,6 @@ function App() {
       )}
 
       {/* INPUTS DE CONTROL INVISIBLES FORZADOS POR REF */}
-      {/* El de cámara lleva capture="environment" sí o sí para obligar al celu a abrir el lente trasero */}
       <input 
         type="file" 
         accept="video/*" 
@@ -264,7 +314,6 @@ function App() {
         onChange={prepararArchivo} 
         style={{ display: 'none' }} 
       />
-      {/* El de galería va libre para que explore archivos */}
       <input 
         type="file" 
         accept="video/mp4,video/webm,video/ogg,video/*" 
@@ -303,7 +352,9 @@ function App() {
           <button 
             type="button" 
             onClick={() => {
-              if (videoRef.current) videoRef.current.pause();
+              if (videoRef.current) {
+                videoRef.current.pause();
+              }
               setMostrarMenuOrigen(true);
             }}
             style={{ 
