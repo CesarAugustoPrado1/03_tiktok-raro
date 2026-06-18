@@ -17,6 +17,12 @@ function App() {
   const [likesContador, setLikesContador] = useState(0);
   const [usuarioDioLike, setUsuarioDioLike] = useState(false);
 
+  // Estados nuevos para el sistema de Comentarios
+  const [mostrarComentarios, setMostrarComentarios] = useState(false);
+  const [listaComentarios, setListaComentarios] = useState([]);
+  const [nuevoComentario, setNuevoComentario] = useState('');
+  const [enviandoComentario, setEnviandoComentario] = useState(false);
+
   // Control de navegación entre vistas: 'feed', 'descubrir' o 'mis-videos'
   const [vistaActiva, setVistaActiva] = useState('feed'); 
 
@@ -91,16 +97,18 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Cargar estadísticas de likes cada vez que cambia el video actual o el usuario
+  // Cargar estadísticas de likes y comentarios cada vez que cambia el video actual
   useEffect(() => {
     if (listaVideos.length > 0 && listaVideos[indiceActual] && usuario) {
-      cargarDatosLikes(listaVideos[indiceActual].id);
+      const videoId = listaVideos[indiceActual].id;
+      cargarDatosLikes(videoId);
+      cargarComentarios(videoId);
+      setMostrarComentarios(false); // Cierra los comentarios del video anterior si quedaron abiertos
     }
   }, [indiceActual, listaVideos, usuario]);
 
   const cargarDatosLikes = async (videoId) => {
     try {
-      // 1. Traer cantidad total de likes de este video
       const { count, error: countError } = await supabase
         .from('likes')
         .select('*', { count: 'exact', head: true })
@@ -109,7 +117,6 @@ function App() {
       if (countError) throw countError;
       setLikesContador(count || 0);
 
-      // 2. Verificar si el usuario actual ya le dio like de antes
       const { data: yaLikeado, error: checkError } = await supabase
         .from('likes')
         .select('id')
@@ -123,13 +130,27 @@ function App() {
     }
   };
 
+  const cargarComentarios = async (videoId) => {
+    try {
+      const { data, error } = await supabase
+        .from('comentarios')
+        .select('*')
+        .eq('video_id', videoId)
+        .order('creado_el', { ascending: true });
+
+      if (error) throw error;
+      setListaComentarios(data || []);
+    } catch (err) {
+      console.error("Error al cargar comentarios:", err.message);
+    }
+  };
+
   const manejarBotonLike = async () => {
     const videoActual = listaVideos[indiceActual];
     if (!videoActual || !usuario) return;
 
     try {
       if (usuarioDioLike) {
-        // Quitar Like (Dislike)
         const { error } = await supabase
           .from('likes')
           .delete()
@@ -140,17 +161,14 @@ function App() {
         setLikesContador(prev => Math.max(0, prev - 1));
         setUsuarioDioLike(false);
       } else {
-        // Dar Like
         const { error } = await supabase
           .from('likes')
           .insert([{ video_id: videoActual.id, user_id: usuario.id }]);
 
         if (error) throw error;
         setLikesContador(prev => prev + 1);
-        setUsuarioDioLike(false);
         setUsuarioDioLike(true);
 
-        // Clavamos boost algorítmico al dar Like (+15 puntos de interés)
         setIntereses(prev => ({
           ...prev,
           [videoActual.categoria]: (prev[videoActual.categoria] || 0) + 15
@@ -158,6 +176,41 @@ function App() {
       }
     } catch (err) {
       console.error("Error al procesar el like:", err.message);
+    }
+  };
+
+  const procesarEnvioComentario = async (e) => {
+    e.preventDefault();
+    if (!nuevoComentario.trim() || enviandoComentario) return;
+
+    const videoActual = listaVideos[indiceActual];
+    if (!videoActual || !usuario) return;
+
+    try {
+      setEnviandoComentario(true);
+      const { data, error } = await supabase
+        .from('comentarios')
+        .insert([
+          {
+            video_id: videoActual.id,
+            user_id: usuario.id,
+            user_email: usuario.email,
+            contenido: nuevoComentario.trim()
+          }
+        ])
+        .select();
+
+      if (error) throw error;
+
+      // Actualizar la lista en pantalla inmediatamente
+      if (data) {
+        setListaComentarios(prev => [...prev, data[0]]);
+      }
+      setNuevoComentario('');
+    } catch (err) {
+      alert("No se pudo publicar tu comentario: " + err.message);
+    } finally {
+      setEnviandoComentario(false);
     }
   };
 
@@ -347,31 +400,111 @@ function App() {
                 }}
               />
 
-              {/* BOTONERA FLOTANTE DERECHA (ESTILO TIKTOK: CORAZÓN + CONTADOR) */}
+              {/* BOTONERA FLOTANTE DE INTERACCIÓN (ESTILO TIKTOK: LIKES + COMENTARIOS) */}
               <div style={{
                 position: 'absolute', right: '15px', bottom: '160px', zIndex: 50,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px'
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'
               }}>
-                <button
-                  onClick={manejarBotonLike}
-                  style={{
-                    width: '48px', height: '48px', borderRadius: '50%', border: 'none',
-                    backgroundColor: 'rgba(0,0,0,0.6)', color: usuarioDioLike ? '#ff0055' : '#ffffff',
-                    fontSize: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', transition: 'transform 0.2s ease',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-                    transform: usuarioDioLike ? 'scale(1.15)' : 'scale(1)'
-                  }}
-                >
-                  ❤️
-                </button>
-                <span style={{
-                  color: '#ffffff', fontSize: '12px', fontWeight: 'bold',
-                  textShadow: '1px 1px 3px rgba(0,0,0,0.8)', fontFamily: 'sans-serif'
-                }}>
-                  {likesContador}
-                </span>
+                {/* Botón de Like */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <button
+                    onClick={manejarBotonLike}
+                    style={{
+                      width: '46px', height: '46px', borderRadius: '50%', border: 'none',
+                      backgroundColor: 'rgba(0,0,0,0.6)', color: usuarioDioLike ? '#ff0055' : '#ffffff',
+                      fontSize: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', transition: 'transform 0.2s ease',
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+                      transform: usuarioDioLike ? 'scale(1.15)' : 'scale(1)'
+                    }}
+                  >
+                    ❤️
+                  </button>
+                  <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 'bold', textShadow: '1px 1px 2px #000', fontFamily: 'sans-serif' }}>
+                    {likesContador}
+                  </span>
+                </div>
+
+                {/* NUEVO: Botón de Comentarios */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <button
+                    onClick={() => setMostrarComentarios(true)}
+                    style={{
+                      width: '46px', height: '46px', borderRadius: '50%', border: 'none',
+                      backgroundColor: 'rgba(0,0,0,0.6)', color: '#ffffff',
+                      fontSize: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    💬
+                  </button>
+                  <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 'bold', textShadow: '1px 1px 2px #000', fontFamily: 'sans-serif' }}>
+                    {listaComentarios.length}
+                  </span>
+                </div>
               </div>
+
+              {/* VENTANA INFERIOR DESLIZABLE (BOTTOM SHEET) PARA COMENTARIOS */}
+              {mostrarComentarios && (
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, width: '100vw', height: '60vh',
+                  backgroundColor: '#111111', borderTopLeftRadius: '16px', borderTopRightRadius: '16px',
+                  zIndex: 120, display: 'flex', flexDirection: 'column', boxShadow: '0 -5px 25px rgba(0,0,0,0.8)',
+                  paddingBottom: 'env(safe-area-inset-bottom)', fontFamily: 'sans-serif'
+                }}>
+                  {/* Encabezado del panel */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderBottom: '1px solid #222' }}>
+                    <span style={{ color: '#ffffff', fontWeight: 'bold', fontSize: '15px' }}>Comentarios ({listaComentarios.length})</span>
+                    <button 
+                      onClick={() => setMostrarComentarios(false)}
+                      style={{ background: 'none', border: 'none', color: '#ff0055', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Lista con scroll de mensajes */}
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '15px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {listaComentarios.map((com) => (
+                      <div key={com.id} style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#181818', padding: '10px', borderRadius: '8px' }}>
+                        <span style={{ color: '#00ffcc', fontSize: '11px', fontWeight: 'bold', marginBottom: '3px' }}>
+                          {com.user_email.split('@')[0]} {/* Muestra solo el nombre antes del @ */}
+                        </span>
+                        <span style={{ color: '#ffffff', fontSize: '13px', lineHeight: '1.4' }}>{com.contenido}</span>
+                      </div>
+                    ))}
+                    {listaComentarios.length === 0 && (
+                      <p style={{ color: '#555', textAlign: 'center', marginTop: '30px', fontSize: '13px' }}>Nadie comentó todavía. ¡Sé el primero!</p>
+                    )}
+                  </div>
+
+                  {/* Input fijado abajo para enviar un mensaje nuevo */}
+                  <form onSubmit={procesarEnvioComentario} style={{ display: 'flex', padding: '10px 15px', borderTop: '1px solid #222', backgroundColor: '#111' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Escribí un comentario..."
+                      value={nuevoComentario}
+                      onChange={(e) => setNuevoComentario(e.target.value)}
+                      maxLength={300}
+                      style={{
+                        flex: 1, padding: '10px 15px', backgroundColor: '#222', border: 'none',
+                        borderRadius: '20px', color: '#fff', fontSize: '14px', outline: 'none'
+                      }}
+                    />
+                    <button 
+                      type="submit" 
+                      disabled={!nuevoComentario.trim() || enviandoComentario}
+                      style={{
+                        marginLeft: '10px', backgroundColor: '#00ffcc', color: '#000',
+                        border: 'none', borderRadius: '20px', padding: '0 15px', fontWeight: 'bold',
+                        fontSize: '13px', cursor: 'pointer', opacity: nuevoComentario.trim() ? 1 : 0.5
+                      }}
+                    >
+                      {enviandoComentario ? "..." : "Enviar"}
+                    </button>
+                  </form>
+                </div>
+              )}
 
               <div className="barra-previews">
                 {previewIzquierda && (
