@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import FormularioSubida from './FormularioSubida';
-import Login from './Login'; // Importación del módulo de autenticación independiente
-import './App.css'; // Importación de los estilos independientes
+import MisVideos from './MisVideos'; // <-- ¡IMPORTACIÓN NUEVA!
+import Login from './Login'; 
+import './App.css'; 
 
 function App() {
   const [listaVideos, setListaVideos] = useState([]);
@@ -11,6 +12,9 @@ function App() {
   const [cargando, setCargando] = useState(true);
   const [errorApp, setErrorApp] = useState(null);
   const [progreso, setProgreso] = useState(0);
+
+  // Control de navegación entre vistas: 'feed' o 'mis-videos'
+  const [vistaActiva, setVistaActiva] = useState('feed'); // <-- ¡ESTADO CLAVE NUEVO!
 
   // Estado crítico para almacenar los datos del usuario logueado
   const [usuario, setUsuario] = useState(null);
@@ -87,7 +91,7 @@ function App() {
   }, []);
 
   const controlarProgresoVideo = () => {
-    if (mostrarModal) return;
+    if (mostrarModal || vistaActiva !== 'feed') return;
     const video = videoRef.current;
     if (!video || isNaN(video.duration)) return;
 
@@ -198,17 +202,15 @@ function App() {
     if (necesitaRecargar) {
       window.location.reload();
     } else {
-      if (videoRef.current) videoRef.current.play();
+      if (videoRef.current && vistaActiva === 'feed') videoRef.current.play();
     }
   };
 
-  // Función para desloguearse del sistema
   const manejarLogout = async () => {
     await supabase.auth.signOut();
     setUsuario(null);
   };
 
-  // Renderizados condicionales de control global
   if (errorApp) return <div style={{ color: 'red', padding: '20px' }}>Error: {errorApp}</div>;
   if (cargando) return <div style={{ color: '#00ffcc', textAlign: 'center', marginTop: '20vh', fontFamily: 'sans-serif' }}>Iniciando entorno Slik/Orbit...</div>;
 
@@ -217,7 +219,6 @@ function App() {
     return <Login alLoguearse={(user) => setUsuario(user)} />;
   }
 
-  // Si pasó el login pero no hay videos subidos
   if (listaVideos.length === 0) return <div style={{ color: '#00ffcc', textAlign: 'center', marginTop: '20vh' }}>No hay videos en la base de datos...</div>;
 
   const videoPrincipal = listaVideos[indiceActual];
@@ -240,148 +241,138 @@ function App() {
         🚪 Salir
       </button>
 
-      <div className="contenedor-linea-tiempo">
-        <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
-      </div>
-
-      {mostrarModal && (
-        <FormularioSubida 
-          archivo={archivoSeleccionado} 
-          alCerrar={manejarCierreModal} 
-        />
-      )}
-
-      {/* MENÚ FLOTANTE INTERMEDIO DE ELECCIÓN */}
-      {mostrarMenuOrigen && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, width: '100vw', height: '100vh',
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          zIndex: 100, display: 'flex', justifyContent: 'center', alignItems: 'center'
-        }}>
-          <div style={{
-            backgroundColor: '#1e1e1e',
-            border: '2px solid #00ffcc',
-            borderRadius: '16px',
-            padding: '25px',
-            width: '85%',
-            maxWidth: '320px',
-            textAlign: 'center',
-            boxShadow: '0 0 25px rgba(0, 255, 204, 0.3)'
-          }}>
-            <h3 style={{ color: '#ffffff', margin: '0 0 20px 0', fontSize: '18px', fontFamily: 'sans-serif' }}>
-              ¿Qué querés hacer?
-            </h3>
-            
-            <button 
-              onClick={() => manejarEleccionOrigen('camara')}
-              style={{
-                width: '100%', padding: '14px', marginBottom: '12px',
-                backgroundColor: '#00ffcc', color: '#000000',
-                border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer'
-              }}
-            >
-              🎥 Grabar con Cámara
-            </button>
-
-            <button 
-              onClick={() => manejarEleccionOrigen('galeria')}
-              style={{
-                width: '100%', padding: '14px', marginBottom: '20px',
-                backgroundColor: '#2e2e2e', color: '#ffffff',
-                border: '1px solid #444', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer'
-              }}
-            >
-              📂 Buscar en Galería
-            </button>
-
-            <span 
-              onClick={() => setMostrarMenuOrigen(false)}
-              style={{ color: '#ff0055', fontSize: '14px', cursor: 'pointer', display: 'inline-block', fontWeight: '500' }}
-            >
-              Cancelar
-            </span>
+      {/* RENDERIZADO CONDICIONAL DE VISTAS */}
+      {vistaActiva === 'feed' ? (
+        <>
+          <div className="contenedor-linea-tiempo">
+            <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
           </div>
-        </div>
-      )}
 
-      {/* INPUTS DE CONTROL INVISIBLES FORZADOS POR REF */}
-      <input 
-        type="file" 
-        accept="video/*" 
-        capture="environment" 
-        ref={inputCamaraRef} 
-        onChange={prepararArchivo} 
-        style={{ display: 'none' }} 
-      />
-      <input 
-        type="file" 
-        accept="video/mp4,video/webm,video/ogg,video/*" 
-        ref={inputGaleriaRef} 
-        onChange={prepararArchivo} 
-        style={{ display: 'none' }} 
-      />
-
-      <video
-        ref={videoRef}
-        className="reproductor-principal"
-        src={videoPrincipal.url_video}
-        autoPlay
-        playsInline
-        controls
-        preload="metadata"
-        onTimeUpdate={controlarProgresoVideo}
-        onEnded={alTerminarVideoCompleto}
-        onClick={() => {
-          if (videoRef.current) {
-            videoRef.current.muted = false;
-            if (videoRef.current.paused) videoRef.current.play();
-            else videoRef.current.pause();
-          }
-        }}
-      />
-
-      <div className="barra-previews">
-        <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)}>
-          <span className="badge-categoria">{previewIzquierda.categoria}</span>
-          <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
-        </div>
-
-        {/* BOTÓN ÚNICO CENTRAL: Al tocarlo abre nuestro menú intermedio */}
-        <div style={{ width: '56px', height: '56px', zIndex: 15 }}>
-          <button 
-            type="button" 
+          <video
+            ref={videoRef}
+            className="reproductor-principal"
+            src={videoPrincipal.url_video}
+            autoPlay
+            playsInline
+            controls
+            preload="metadata"
+            onTimeUpdate={controlarProgresoVideo}
+            onEnded={alTerminarVideoCompleto}
             onClick={() => {
               if (videoRef.current) {
-                videoRef.current.pause();
+                videoRef.current.muted = false;
+                if (videoRef.current.paused) videoRef.current.play();
+                else videoRef.current.pause();
               }
-              setMostrarMenuOrigen(true);
             }}
+          />
+
+          <div className="barra-previews">
+            <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)}>
+              <span className="badge-categoria">{previewIzquierda.categoria}</span>
+              <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
+            </div>
+
+            {/* BOTÓN ÚNICO CENTRAL ADENTRO DEL FEED */}
+            <div style={{ width: '56px', height: '56px', zIndex: 15 }}>
+              <button 
+                type="button" 
+                onClick={() => {
+                  if (videoRef.current) videoRef.current.pause();
+                  setMostrarMenuOrigen(true);
+                }}
+                style={{ 
+                  width: '100%', height: '100%', backgroundColor: '#00ffcc', color: '#000000',
+                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                  fontSize: '28px', fontWeight: 'bold', boxShadow: '0 0 15px rgba(0, 255, 204, 0.6)', 
+                  border: 'none', cursor: 'pointer'
+                }}
+              >
+                +
+              </button>
+            </div>
+
+            <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)}>
+              <span className="badge-categoria">{previewDerecha.categoria}</span>
+              <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" />
+            </div>
+          </div>
+        </>
+      ) : (
+        <MisVideos /> // <-- Si está en la otra vista, carga tu panel de administración de archivos
+      )}
+
+      {/* MENÚ DE NAVEGACIÓN MÓVIL FIJO ABAJO DE TODO */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, width: '100vw', height: '65px',
+        backgroundColor: '#000000', borderTop: '1px solid #222', zIndex: 90,
+        display: 'flex', justifyContent: 'space-around', alignItems: 'center', paddingBottom: 'env(safe-area-inset-bottom)'
+      }}>
+        <button 
+          onClick={() => {
+            setVistaActiva('feed');
+            setTimeout(() => { if (videoRef.current) videoRef.current.play(); }, 100);
+          }}
+          style={{
+            background: 'none', border: 'none', color: vistaActiva === 'feed' ? '#00ffcc' : '#888888',
+            fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center'
+          }}
+        >
+          <span style={{ fontSize: '20px' }}>🏠</span> Inicio
+        </button>
+
+        {/* Botón central disponible también desde fuera del feed */}
+        {vistaActiva !== 'feed' && (
+          <button 
+            onClick={() => setMostrarMenuOrigen(true)}
             style={{ 
-              width: '100%', 
-              height: '100%', 
-              backgroundColor: '#00ffcc', 
-              color: '#000000', 
-              borderRadius: '50%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              fontSize: '28px', 
-              fontWeight: 'bold', 
-              boxShadow: '0 0 15px rgba(0, 255, 204, 0.6)', 
-              border: 'none', 
-              cursor: 'pointer'
+              width: '44px', height: '44px', backgroundColor: '#00ffcc', color: '#000000',
+              borderRadius: '50%', border: 'none', fontSize: '24px', fontWeight: 'bold', cursor: 'pointer',
+              boxShadow: '0 0 10px rgba(0, 255, 204, 0.4)'
             }}
           >
             +
           </button>
-        </div>
+        )}
 
-        <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)}>
-          <span className="badge-categoria">{previewDerecha.categoria}</span>
-          <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" />
-        </div>
+        <button 
+          onClick={() => {
+            if (videoRef.current) videoRef.current.pause();
+            setVistaActiva('mis-videos');
+          }}
+          style={{
+            background: 'none', border: 'none', color: vistaActiva === 'mis-videos' ? '#00ffcc' : '#888888',
+            fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center'
+          }}
+        >
+          <span style={{ fontSize: '20px' }}>🎬</span> Mis Videos
+        </button>
       </div>
+
+      {/* MODAL DE SUBIDA Y SELECTORES REFS TRAS BAMBALINAS */}
+      {mostrarModal && (
+        <FormularioSubida archivo={archivoSeleccionado} alCerrar={manejarCierreModal} />
+      )}
+
+      {mostrarMenuOrigen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 100, display: 'flex', justifyContent: 'center', alignItems: 'center'
+        }}>
+          <div style={{
+            backgroundColor: '#1e1e1e', border: '2px solid #00ffcc', borderRadius: '16px',
+            padding: '25px', width: '85%', maxWidth: '320px', textAlign: 'center', boxShadow: '0 0 25px rgba(0, 255, 204, 0.3)'
+          }}>
+            <h3 style={{ color: '#ffffff', margin: '0 0 20px 0', fontSize: '18px', fontFamily: 'sans-serif' }}>¿Qué querés hacer?</h3>
+            <button onClick={() => manejarEleccionOrigen('camara')} style={{ width: '100%', padding: '14px', marginBottom: '12px', backgroundColor: '#00ffcc', color: '#000000', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>🎥 Grabar con Cámara</button>
+            <button onClick={() => manejarEleccionOrigen('galeria')} style={{ width: '100%', padding: '14px', marginBottom: '20px', backgroundColor: '#2e2e2e', color: '#ffffff', border: '1px solid #444', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>📂 Buscar en Galería</button>
+            <span onClick={() => { setMostrarMenuOrigen(false); if (videoRef.current && vistaActiva === 'feed') videoRef.current.play(); }} style={{ color: '#ff0055', fontSize: '14px', cursor: 'pointer', display: 'inline-block', fontWeight: '500' }}>Cancelar</span>
+          </div>
+        </div>
+      )}
+
+      <input type="file" accept="video/*" capture="environment" ref={inputCamaraRef} onChange={prepararArchivo} style={{ display: 'none' }} />
+      <input type="file" accept="video/mp4,video/webm,video/ogg,video/*" ref={inputGaleriaRef} onChange={prepararArchivo} style={{ display: 'none' }} />
     </div>
   );
 }

@@ -27,6 +27,17 @@ export default function FormularioSubida({ archivo, alCerrar }) {
     try {
       setSubiendo(true);
 
+      // 1. Obtener la sesión activa para rescatar el id del usuario logueado
+      const { data: { session } } = await supabase.auth.getSession();
+      const usuarioActual = session?.user;
+
+      if (!usuarioActual) {
+        alert("Tenés que estar logueado para subir videos.");
+        setSubiendo(false);
+        return;
+      }
+
+      // 2. Subir el archivo multimedia al Storage de Supabase
       const nombreArchivo = `${Date.now()}_${archivo.name || 'video.mp4'}`;
       const { error: storageError } = await supabase.storage
         .from('videos')
@@ -34,10 +45,12 @@ export default function FormularioSubida({ archivo, alCerrar }) {
 
       if (storageError) throw storageError;
 
+      // 3. Obtener la URL pública del recurso almacenado
       const { data: urlData } = supabase.storage
         .from('videos')
         .getPublicUrl(nombreArchivo);
 
+      // 4. Insertar el registro en la tabla vinculando la nueva columna 'user_id'
       const { error: dbError } = await supabase
         .from('videos')
         .insert([
@@ -47,14 +60,15 @@ export default function FormularioSubida({ archivo, alCerrar }) {
             categoria: categoria,
             sub_categoria: subCategoria,
             url_video: urlData.publicUrl,
-            url_preview: 'automatico'
+            url_preview: 'automatico',
+            user_id: usuarioActual.id // <-- ¡LÍNEA NUEVA CRÍTICA! Vincula el video con su dueño
           }
         ]);
 
       if (dbError) throw dbError;
 
       alert("¡Video subido con éxito, César!");
-      alCerrar(true); // Cierra y avisa que debe refrescar
+      alCerrar(true); // Cierra y avisa que debe refrescar la lista general
     } catch (error) {
       alert("Error al subir al servidor: " + error.message);
       setSubiendo(false);
