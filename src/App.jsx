@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import FormularioSubida from './FormularioSubida';
-import MisVideos from './MisVideos'; // <-- ¡IMPORTACIÓN NUEVA!
+import MisVideos from './MisVideos'; 
 import Login from './Login'; 
 import './App.css'; 
 
@@ -14,7 +14,7 @@ function App() {
   const [progreso, setProgreso] = useState(0);
 
   // Control de navegación entre vistas: 'feed' o 'mis-videos'
-  const [vistaActiva, setVistaActiva] = useState('feed'); // <-- ¡ESTADO CLAVE NUEVO!
+  const [vistaActiva, setVistaActiva] = useState('feed'); 
 
   // Estado crítico para almacenar los datos del usuario logueado
   const [usuario, setUsuario] = useState(null);
@@ -75,6 +75,8 @@ function App() {
             viajes: 5, cine: 5, finanzas: 5, moda: 5, mascotas: 5, educacion: 5
           });
           setPreviewsFijas(iniciales);
+        } else {
+          setListaVideos([]);
         }
       } catch (err) {
         console.error(err);
@@ -202,7 +204,7 @@ function App() {
     if (necesitaRecargar) {
       window.location.reload();
     } else {
-      if (videoRef.current && vistaActiva === 'feed') videoRef.current.play();
+      if (videoRef.current && vistaActiva === 'feed' && listaVideos.length > 0) videoRef.current.play();
     }
   };
 
@@ -219,11 +221,10 @@ function App() {
     return <Login alLoguearse={(user) => setUsuario(user)} />;
   }
 
-  if (listaVideos.length === 0) return <div style={{ color: '#00ffcc', textAlign: 'center', marginTop: '20vh' }}>No hay videos en la base de datos...</div>;
-
-  const videoPrincipal = listaVideos[indiceActual];
-  const previewIzquierda = listaVideos[previewsFijas.izq];
-  const previewDerecha = listaVideos[previewsFijas.der];
+  // Mapeos seguros preparados para bases de datos vacías
+  const videoPrincipal = listaVideos[indiceActual] || null;
+  const previewIzquierda = listaVideos[previewsFijas.izq] || null;
+  const previewDerecha = listaVideos[previewsFijas.der] || null;
 
   return (
     <div className="contenedor-tiktok">
@@ -244,62 +245,78 @@ function App() {
       {/* RENDERIZADO CONDICIONAL DE VISTAS */}
       {vistaActiva === 'feed' ? (
         <>
-          <div className="contenedor-linea-tiempo">
-            <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
-          </div>
-
-          <video
-            ref={videoRef}
-            className="reproductor-principal"
-            src={videoPrincipal.url_video}
-            autoPlay
-            playsInline
-            controls
-            preload="metadata"
-            onTimeUpdate={controlarProgresoVideo}
-            onEnded={alTerminarVideoCompleto}
-            onClick={() => {
-              if (videoRef.current) {
-                videoRef.current.muted = false;
-                if (videoRef.current.paused) videoRef.current.play();
-                else videoRef.current.pause();
-              }
-            }}
-          />
-
-          <div className="barra-previews">
-            <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)}>
-              <span className="badge-categoria">{previewIzquierda.categoria}</span>
-              <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
+          {!videoPrincipal ? (
+            <div style={{ 
+              color: '#888', textAlign: 'center', paddingTop: '35vh', 
+              paddingLeft: '20px', paddingRight: '20px', fontFamily: 'sans-serif' 
+            }}>
+              <p style={{ color: '#00ffcc', fontSize: '18px', fontWeight: 'bold' }}>✨ ¡Plataforma lista!</p>
+              <p style={{ fontSize: '14px', lineHeight: '1.5' }}>Todavía no hay videos globales en la base de datos.<br />Tocá el botón <b>+</b> para subir el primero.</p>
             </div>
+          ) : (
+            <>
+              <div className="contenedor-linea-tiempo">
+                <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
+              </div>
 
-            {/* BOTÓN ÚNICO CENTRAL ADENTRO DEL FEED */}
-            <div style={{ width: '56px', height: '56px', zIndex: 15 }}>
-              <button 
-                type="button" 
+              <video
+                ref={videoRef}
+                className="reproductor-principal"
+                src={videoPrincipal.url_video}
+                autoPlay
+                playsInline
+                controls
+                preload="metadata"
+                onTimeUpdate={controlarProgresoVideo}
+                onEnded={alTerminarVideoCompleto}
                 onClick={() => {
-                  if (videoRef.current) videoRef.current.pause();
-                  setMostrarMenuOrigen(true);
+                  if (videoRef.current) {
+                    videoRef.current.muted = false;
+                    if (videoRef.current.paused) videoRef.current.play();
+                    else videoRef.current.pause();
+                  }
                 }}
-                style={{ 
-                  width: '100%', height: '100%', backgroundColor: '#00ffcc', color: '#000000',
-                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  fontSize: '28px', fontWeight: 'bold', boxShadow: '0 0 15px rgba(0, 255, 204, 0.6)', 
-                  border: 'none', cursor: 'pointer'
-                }}
-              >
-                +
-              </button>
-            </div>
+              />
 
-            <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)}>
-              <span className="badge-categoria">{previewDerecha.categoria}</span>
-              <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" />
-            </div>
-          </div>
+              <div className="barra-previews">
+                {previewIzquierda && (
+                  <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)}>
+                    <span className="badge-categoria">{previewIzquierda.categoria}</span>
+                    <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
+                  </div>
+                )}
+
+                {/* BOTÓN ÚNICO CENTRAL ADENTRO DEL FEED */}
+                <div style={{ width: '56px', height: '56px', zIndex: 15 }}>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      if (videoRef.current) videoRef.current.pause();
+                      setMostrarMenuOrigen(true);
+                    }}
+                    style={{ 
+                      width: '100%', height: '100%', backgroundColor: '#00ffcc', color: '#000000',
+                      borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      fontSize: '28px', fontWeight: 'bold', boxShadow: '0 0 15px rgba(0, 255, 204, 0.6)', 
+                      border: 'none', cursor: 'pointer'
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+
+                {previewDerecha && (
+                  <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)}>
+                    <span className="badge-categoria">{previewDerecha.categoria}</span>
+                    <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </>
       ) : (
-        <MisVideos /> // <-- Si está en la otra vista, carga tu panel de administración de archivos
+        <MisVideos /> 
       )}
 
       {/* MENÚ DE NAVEGACIÓN MÓVIL FIJO ABAJO DE TODO */}
@@ -311,7 +328,7 @@ function App() {
         <button 
           onClick={() => {
             setVistaActiva('feed');
-            setTimeout(() => { if (videoRef.current) videoRef.current.play(); }, 100);
+            setTimeout(() => { if (videoRef.current && listaVideos.length > 0) videoRef.current.play(); }, 100);
           }}
           style={{
             background: 'none', border: 'none', color: vistaActiva === 'feed' ? '#00ffcc' : '#888888',
@@ -321,8 +338,8 @@ function App() {
           <span style={{ fontSize: '20px' }}>🏠</span> Inicio
         </button>
 
-        {/* Botón central disponible también desde fuera del feed */}
-        {vistaActiva !== 'feed' && (
+        {/* Botón central de contingencia si el feed está vacío o estás en otra vista */}
+        {(!videoPrincipal || vistaActiva !== 'feed') && (
           <button 
             onClick={() => setMostrarMenuOrigen(true)}
             style={{ 
@@ -366,7 +383,7 @@ function App() {
             <h3 style={{ color: '#ffffff', margin: '0 0 20px 0', fontSize: '18px', fontFamily: 'sans-serif' }}>¿Qué querés hacer?</h3>
             <button onClick={() => manejarEleccionOrigen('camara')} style={{ width: '100%', padding: '14px', marginBottom: '12px', backgroundColor: '#00ffcc', color: '#000000', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>🎥 Grabar con Cámara</button>
             <button onClick={() => manejarEleccionOrigen('galeria')} style={{ width: '100%', padding: '14px', marginBottom: '20px', backgroundColor: '#2e2e2e', color: '#ffffff', border: '1px solid #444', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>📂 Buscar en Galería</button>
-            <span onClick={() => { setMostrarMenuOrigen(false); if (videoRef.current && vistaActiva === 'feed') videoRef.current.play(); }} style={{ color: '#ff0055', fontSize: '14px', cursor: 'pointer', display: 'inline-block', fontWeight: '500' }}>Cancelar</span>
+            <span onClick={() => { setMostrarMenuOrigen(false); if (videoRef.current && vistaActiva === 'feed' && listaVideos.length > 0) videoRef.current.play(); }} style={{ color: '#ff0055', fontSize: '14px', cursor: 'pointer', display: 'inline-block', fontWeight: '500' }}>Cancelar</span>
           </div>
         </div>
       )}
