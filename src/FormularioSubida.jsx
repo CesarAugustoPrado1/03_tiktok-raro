@@ -43,7 +43,9 @@ export default function FormularioSubida({ archivo, alCerrar }) {
         .from('videos')
         .upload(nombreArchivo, archivo);
 
-      if (storageError) throw storageError;
+      if (storageError) {
+        throw new Error(`[Error de Almacenamiento/Storage]: ${storageError.message}`);
+      }
 
       // 3. Obtener la URL pública del recurso almacenado
       const { data: urlData } = supabase.storage
@@ -61,11 +63,13 @@ export default function FormularioSubida({ archivo, alCerrar }) {
             sub_categoria: subCategoria,
             url_video: urlData.publicUrl,
             url_preview: 'automatico',
-            user_id: usuarioActual.id // <-- ¡LÍNEA NUEVA CRÍTICA! Vincula el video con su dueño
+            user_id: usuarioActual.id // Vincula el video con su dueño
           }
         ]);
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        throw new Error(`[Error de Tabla/Base de datos]: ${dbError.message}`);
+      }
 
       alert("¡Video subido con éxito, César!");
       alCerrar(true); // Cierra y avisa que debe refrescar la lista general
