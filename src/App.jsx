@@ -13,8 +13,11 @@ function App() {
   const [errorApp, setErrorApp] = useState(null);
   const [progreso, setProgreso] = useState(0);
 
-  // Control de navegación entre vistas: 'feed' o 'mis-videos'
+  // Control de navegación entre vistas: 'feed', 'descubrir' o 'mis-videos'
   const [vistaActiva, setVistaActiva] = useState('feed'); 
+
+  // Estado para la barra de búsqueda de la pestaña Descubrir
+  const [terminoBusqueda, setTerminoBusqueda] = useState('');
 
   // Estado crítico para almacenar los datos del usuario logueado
   const [usuario, setUsuario] = useState(null);
@@ -45,12 +48,10 @@ function App() {
 
   // Ciclo de vida: control de sesiones y carga de datos
   useEffect(() => {
-    // 1. Verificar si hay una sesión guardada de antes
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setUsuario(session.user);
     });
 
-    // 2. Escuchar cambios de autenticación activos (Login, Registro con éxito, Logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setUsuario(session.user);
@@ -59,7 +60,6 @@ function App() {
       }
     });
 
-    // 3. Obtener el catálogo de videos desde Supabase
     async function obtenerVideos() {
       try {
         let { data, error } = await supabase.from('videos').select('*');
@@ -88,7 +88,6 @@ function App() {
 
     obtenerVideos();
 
-    // Limpieza de la escucha al desmontar el componente
     return () => subscription.unsubscribe();
   }, []);
 
@@ -213,15 +212,24 @@ function App() {
     setUsuario(null);
   };
 
+  // Filtrado lógico para la pestaña de Descubrir/Buscador
+  const videosFiltrados = listaVideos.filter(vid => {
+    const termino = terminoBusqueda.toLowerCase();
+    return (
+      vid.titulo?.toLowerCase().includes(termino) ||
+      vid.categoria?.toLowerCase().includes(termino) ||
+      vid.sub_categoria?.toLowerCase().includes(termino) ||
+      vid.descripcion?.toLowerCase().includes(termino)
+    );
+  });
+
   if (errorApp) return <div style={{ color: 'red', padding: '20px' }}>Error: {errorApp}</div>;
   if (cargando) return <div style={{ color: '#00ffcc', textAlign: 'center', marginTop: '20vh', fontFamily: 'sans-serif' }}>Iniciando entorno Slik/Orbit...</div>;
 
-  // [GUARDIÁN DE AUTENTICACIÓN] Si no hay usuario activo, salta el Login sin rodeos
   if (!usuario) {
     return <Login alLoguearse={(user) => setUsuario(user)} />;
   }
 
-  // Mapeos seguros preparados para bases de datos vacías
   const videoPrincipal = listaVideos[indiceActual] || null;
   const previewIzquierda = listaVideos[previewsFijas.izq] || null;
   const previewDerecha = listaVideos[previewsFijas.der] || null;
@@ -242,8 +250,8 @@ function App() {
         🚪 Salir
       </button>
 
-      {/* RENDERIZADO CONDICIONAL DE VISTAS */}
-      {vistaActiva === 'feed' ? (
+      {/* RENDERIZADO CONDICIONAL DE VISTAS (Feed / Descubrir / Mis Videos) */}
+      {vistaActiva === 'feed' && (
         <>
           {!videoPrincipal ? (
             <div style={{ 
@@ -286,7 +294,6 @@ function App() {
                   </div>
                 )}
 
-                {/* BOTÓN ÚNICO CENTRAL ADENTRO DEL FEED */}
                 <div style={{ width: '56px', height: '56px', zIndex: 15 }}>
                   <button 
                     type="button" 
@@ -315,7 +322,62 @@ function App() {
             </>
           )}
         </>
-      ) : (
+      )}
+
+      {vistaActiva === 'descubrir' && (
+        <div style={{ padding: '20px', paddingTop: '60px', paddingBottom: '90px', fontFamily: 'sans-serif', color: '#fff', overflowY: 'auto', height: 'calc(100vh - 150px)' }}>
+          <h2 style={{ color: '#00ffcc', fontSize: '22px', marginBottom: '15px' }}>Descubrir Contenido 🔍</h2>
+          
+          <input 
+            type="text"
+            placeholder="Buscar por título, categoría o tipo..."
+            value={terminoBusqueda}
+            onChange={(e) => setTerminoBusqueda(e.target.value)}
+            style={{
+              width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid #333',
+              backgroundColor: '#161616', color: '#fff', fontSize: '15px', marginBottom: '20px',
+              boxSizing: 'border-box', outline: 'none'
+            }}
+          />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            {videosFiltrados.map((vid) => {
+              // Encontrar el índice absoluto de este video en la lista general
+              const indiceAbsoluto = listaVideos.findIndex(v => v.id === vid.id);
+              return (
+                <div 
+                  key={vid.id}
+                  onClick={() => {
+                    setVistaActiva('feed');
+                    setTimeout(() => cambiarVideo(indiceAbsoluto), 150);
+                  }}
+                  style={{
+                    backgroundColor: '#121212', borderRadius: '10px', overflow: 'hidden',
+                    border: '1px solid #222', cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ position: 'relative', width: '100%', aspectRatio: '9/16', backgroundColor: '#000' }}>
+                    <video src={`${vid.url_video}#t=0.5`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <span style={{ position: 'absolute', top: '8px', left: '8px', backgroundColor: '#00ffcc', color: '#000', fontSize: '10px', padding: '3px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                      {vid.categoria}
+                    </span>
+                  </div>
+                  <div style={{ padding: '8px' }}>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{vid.titulo}</p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#666' }}>{vid.sub_categoria}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {videosFiltrados.length === 0 && (
+            <p style={{ color: '#666', textAlign: 'center', marginTop: '40px', fontSize: '14px' }}>No encontramos videos que coincidan con tu búsqueda.</p>
+          )}
+        </div>
+      )}
+
+      {vistaActiva === 'mis-videos' && (
         <MisVideos /> 
       )}
 
@@ -325,6 +387,7 @@ function App() {
         backgroundColor: '#000000', borderTop: '1px solid #222', zIndex: 90,
         display: 'flex', justifyContent: 'space-around', alignItems: 'center', paddingBottom: 'env(safe-area-inset-bottom)'
       }}>
+        {/* Botón de Inicio */}
         <button 
           onClick={() => {
             setVistaActiva('feed');
@@ -332,18 +395,32 @@ function App() {
           }}
           style={{
             background: 'none', border: 'none', color: vistaActiva === 'feed' ? '#00ffcc' : '#888888',
-            fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center'
+            fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center'
           }}
         >
-          <span style={{ fontSize: '20px' }}>🏠</span> Inicio
+          <span style={{ fontSize: '18px' }}>🏠</span> Inicio
         </button>
 
-        {/* Botón central de contingencia si el feed está vacío o estás en otra vista */}
-        {(!videoPrincipal || vistaActiva !== 'feed') && (
+        {/* NUEVO: Botón de Descubrir */}
+        <button 
+          onClick={() => {
+            if (videoRef.current) videoRef.current.pause();
+            setVistaActiva('descubrir');
+          }}
+          style={{
+            background: 'none', border: 'none', color: vistaActiva === 'descubrir' ? '#00ffcc' : '#888888',
+            fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center'
+          }}
+        >
+          <span style={{ fontSize: '18px' }}>🔍</span> Descubrir
+        </button>
+
+        {/* Botón Central Flotante + (Disponible fuera del feed principal) */}
+        {vistaActiva !== 'feed' && (
           <button 
             onClick={() => setMostrarMenuOrigen(true)}
             style={{ 
-              width: '44px', height: '44px', backgroundColor: '#00ffcc', color: '#000000',
+              width: '42px', height: '42px', backgroundColor: '#00ffcc', color: '#000000',
               borderRadius: '50%', border: 'none', fontSize: '24px', fontWeight: 'bold', cursor: 'pointer',
               boxShadow: '0 0 10px rgba(0, 255, 204, 0.4)'
             }}
@@ -352,6 +429,7 @@ function App() {
           </button>
         )}
 
+        {/* Botón de Mis Videos */}
         <button 
           onClick={() => {
             if (videoRef.current) videoRef.current.pause();
@@ -359,10 +437,10 @@ function App() {
           }}
           style={{
             background: 'none', border: 'none', color: vistaActiva === 'mis-videos' ? '#00ffcc' : '#888888',
-            fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center'
+            fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center'
           }}
         >
-          <span style={{ fontSize: '20px' }}>🎬</span> Mis Videos
+          <span style={{ fontSize: '18px' }}>🎬</span> Mis Videos
         </button>
       </div>
 
