@@ -13,6 +13,10 @@ function App() {
   const [errorApp, setErrorApp] = useState(null);
   const [progreso, setProgreso] = useState(0);
 
+  // Estados para el sistema de Likes
+  const [likesContador, setLikesContador] = useState(0);
+  const [usuarioDioLike, setUsuarioDioLike] = useState(false);
+
   // Control de navegación entre vistas: 'feed', 'descubrir' o 'mis-videos'
   const [vistaActiva, setVistaActiva] = useState('feed'); 
 
@@ -42,22 +46,18 @@ function App() {
   const videoRef = useRef(null);
   const tiempoEntradaRef = useRef(Date.now());
 
-  // Referencias a los inputs invisibles para poder clickearlos por código
   const inputCamaraRef = useRef(null);
   const inputGaleriaRef = useRef(null);
 
-  // Ciclo de vida: control de sesiones y carga de datos
+  // Ciclo de vida principal
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setUsuario(session.user);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setUsuario(session.user);
-      } else {
-        setUsuario(null);
-      }
+      if (session) setUsuario(session.user);
+      else setUsuario(null);
     });
 
     async function obtenerVideos() {
@@ -90,6 +90,76 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Cargar estadísticas de likes cada vez que cambia el video actual o el usuario
+  useEffect(() => {
+    if (listaVideos.length > 0 && listaVideos[indiceActual] && usuario) {
+      cargarDatosLikes(listaVideos[indiceActual].id);
+    }
+  }, [indiceActual, listaVideos, usuario]);
+
+  const cargarDatosLikes = async (videoId) => {
+    try {
+      // 1. Traer cantidad total de likes de este video
+      const { count, error: countError } = await supabase
+        .from('likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('video_id', videoId);
+
+      if (countError) throw countError;
+      setLikesContador(count || 0);
+
+      // 2. Verificar si el usuario actual ya le dio like de antes
+      const { data: yaLikeado, error: checkError } = await supabase
+        .from('likes')
+        .select('id')
+        .eq('video_id', videoId)
+        .eq('user_id', usuario.id);
+
+      if (checkError) throw checkError;
+      setUsuarioDioLike(yaLikeado && yaLikeado.length > 0);
+    } catch (err) {
+      console.error("Error al cargar estadisticas de likes:", err);
+    }
+  };
+
+  const manejarBotonLike = async () => {
+    const videoActual = listaVideos[indiceActual];
+    if (!videoActual || !usuario) return;
+
+    try {
+      if (usuarioDioLike) {
+        // Quitar Like (Dislike)
+        const { error } = await supabase
+          .from('likes')
+          .delete()
+          .eq('video_id', videoActual.id)
+          .eq('user_id', usuario.id);
+
+        if (error) throw error;
+        setLikesContador(prev => Math.max(0, prev - 1));
+        setUsuarioDioLike(false);
+      } else {
+        // Dar Like
+        const { error } = await supabase
+          .from('likes')
+          .insert([{ video_id: videoActual.id, user_id: usuario.id }]);
+
+        if (error) throw error;
+        setLikesContador(prev => prev + 1);
+        setUsuarioDioLike(false);
+        setUsuarioDioLike(true);
+
+        // Clavamos boost algorítmico al dar Like (+15 puntos de interés)
+        setIntereses(prev => ({
+          ...prev,
+          [videoActual.categoria]: (prev[videoActual.categoria] || 0) + 15
+        }));
+      }
+    } catch (err) {
+      console.error("Error al procesar el like:", err.message);
+    }
+  };
 
   const controlarProgresoVideo = () => {
     if (mostrarModal || vistaActiva !== 'feed') return;
@@ -183,11 +253,8 @@ function App() {
 
   const manejarEleccionOrigen = (tipo) => {
     setMostrarMenuOrigen(false); 
-    if (tipo === 'camara') {
-      inputCamaraRef.current.click(); 
-    } else if (tipo === 'galeria') {
-      inputGaleriaRef.current.click(); 
-    }
+    if (tipo === 'camara') inputCamaraRef.current.click(); 
+    else if (tipo === 'galeria') inputGaleriaRef.current.click(); 
   };
 
   const prepararArchivo = (event) => {
@@ -200,11 +267,8 @@ function App() {
   const manejarCierreModal = (necesitaRecargar) => {
     setMostrarModal(false);
     setArchivoSeleccionado(null);
-    if (necesitaRecargar) {
-      window.location.reload();
-    } else {
-      if (videoRef.current && vistaActiva === 'feed' && listaVideos.length > 0) videoRef.current.play();
-    }
+    if (necesitaRecargar) window.location.reload();
+    else if (videoRef.current && vistaActiva === 'feed' && listaVideos.length > 0) videoRef.current.play();
   };
 
   const manejarLogout = async () => {
@@ -212,7 +276,6 @@ function App() {
     setUsuario(null);
   };
 
-  // Filtrado lógico para la pestaña de Descubrir/Buscador
   const videosFiltrados = listaVideos.filter(vid => {
     const termino = terminoBusqueda.toLowerCase();
     return (
@@ -226,9 +289,7 @@ function App() {
   if (errorApp) return <div style={{ color: 'red', padding: '20px' }}>Error: {errorApp}</div>;
   if (cargando) return <div style={{ color: '#00ffcc', textAlign: 'center', marginTop: '20vh', fontFamily: 'sans-serif' }}>Iniciando entorno Slik/Orbit...</div>;
 
-  if (!usuario) {
-    return <Login alLoguearse={(user) => setUsuario(user)} />;
-  }
+  if (!usuario) return <Login alLoguearse={(user) => setUsuario(user)} />;
 
   const videoPrincipal = listaVideos[indiceActual] || null;
   const previewIzquierda = listaVideos[previewsFijas.izq] || null;
@@ -236,7 +297,7 @@ function App() {
 
   return (
     <div className="contenedor-tiktok">
-      {/* Botón flotante para poder cerrar sesión de forma manual */}
+      {/* Botón flotante Logout */}
       <button 
         onClick={manejarLogout}
         style={{
@@ -250,7 +311,7 @@ function App() {
         🚪 Salir
       </button>
 
-      {/* RENDERIZADO CONDICIONAL DE VISTAS (Feed / Descubrir / Mis Videos) */}
+      {/* RENDERIZADO DE VISTAS */}
       {vistaActiva === 'feed' && (
         <>
           {!videoPrincipal ? (
@@ -285,6 +346,32 @@ function App() {
                   }
                 }}
               />
+
+              {/* BOTONERA FLOTANTE DERECHA (ESTILO TIKTOK: CORAZÓN + CONTADOR) */}
+              <div style={{
+                position: 'absolute', right: '15px', bottom: '160px', zIndex: 50,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px'
+              }}>
+                <button
+                  onClick={manejarBotonLike}
+                  style={{
+                    width: '48px', height: '48px', borderRadius: '50%', border: 'none',
+                    backgroundColor: 'rgba(0,0,0,0.6)', color: usuarioDioLike ? '#ff0055' : '#ffffff',
+                    fontSize: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', transition: 'transform 0.2s ease',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+                    transform: usuarioDioLike ? 'scale(1.15)' : 'scale(1)'
+                  }}
+                >
+                  ❤️
+                </button>
+                <span style={{
+                  color: '#ffffff', fontSize: '12px', fontWeight: 'bold',
+                  textShadow: '1px 1px 3px rgba(0,0,0,0.8)', fontFamily: 'sans-serif'
+                }}>
+                  {likesContador}
+                </span>
+              </div>
 
               <div className="barra-previews">
                 {previewIzquierda && (
@@ -342,7 +429,6 @@ function App() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             {videosFiltrados.map((vid) => {
-              // Encontrar el índice absoluto de este video en la lista general
               const indiceAbsoluto = listaVideos.findIndex(v => v.id === vid.id);
               return (
                 <div 
@@ -377,17 +463,14 @@ function App() {
         </div>
       )}
 
-      {vistaActiva === 'mis-videos' && (
-        <MisVideos /> 
-      )}
+      {vistaActiva === 'mis-videos' && <MisVideos />}
 
-      {/* MENÚ DE NAVEGACIÓN MÓVIL FIJO ABAJO DE TODO */}
+      {/* MENÚ DE NAVEGACIÓN MÓVIL */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, width: '100vw', height: '65px',
         backgroundColor: '#000000', borderTop: '1px solid #222', zIndex: 90,
         display: 'flex', justifyContent: 'space-around', alignItems: 'center', paddingBottom: 'env(safe-area-inset-bottom)'
       }}>
-        {/* Botón de Inicio */}
         <button 
           onClick={() => {
             setVistaActiva('feed');
@@ -401,7 +484,6 @@ function App() {
           <span style={{ fontSize: '18px' }}>🏠</span> Inicio
         </button>
 
-        {/* NUEVO: Botón de Descubrir */}
         <button 
           onClick={() => {
             if (videoRef.current) videoRef.current.pause();
@@ -415,7 +497,6 @@ function App() {
           <span style={{ fontSize: '18px' }}>🔍</span> Descubrir
         </button>
 
-        {/* Botón Central Flotante + (Disponible fuera del feed principal) */}
         {vistaActiva !== 'feed' && (
           <button 
             onClick={() => setMostrarMenuOrigen(true)}
@@ -429,7 +510,6 @@ function App() {
           </button>
         )}
 
-        {/* Botón de Mis Videos */}
         <button 
           onClick={() => {
             if (videoRef.current) videoRef.current.pause();
@@ -444,10 +524,8 @@ function App() {
         </button>
       </div>
 
-      {/* MODAL DE SUBIDA Y SELECTORES REFS TRAS BAMBALINAS */}
-      {mostrarModal && (
-        <FormularioSubida archivo={archivoSeleccionado} alCerrar={manejarCierreModal} />
-      )}
+      {/* MODALS Y INPUTS */}
+      {mostrarModal && <FormularioSubida archivo={archivoSeleccionado} alCerrar={manejarCierreModal} />}
 
       {mostrarMenuOrigen && (
         <div style={{
