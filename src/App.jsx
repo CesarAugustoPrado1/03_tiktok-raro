@@ -17,7 +17,7 @@ function App() {
   const [likesContador, setLikesContador] = useState(0);
   const [usuarioDioLike, setUsuarioDioLike] = useState(false);
 
-  // Estados nuevos para el sistema de Comentarios
+  // Estados nuevos para el sistema de Comentarios (Dejados para el futuro)
   const [mostrarComentarios, setMostrarComentarios] = useState(false);
   const [listaComentarios, setListaComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState('');
@@ -103,7 +103,7 @@ function App() {
       const videoId = listaVideos[indiceActual].id;
       cargarDatosLikes(videoId);
       cargarComentarios(videoId);
-      setMostrarComentarios(false); // Cierra los comentarios del video anterior si quedaron abiertos
+      setMostrarComentarios(false);
     }
   }, [indiceActual, listaVideos, usuario]);
 
@@ -202,7 +202,6 @@ function App() {
 
       if (error) throw error;
 
-      // Actualizar la lista en pantalla inmediatamente
       if (data) {
         setListaComentarios(prev => [...prev, data[0]]);
       }
@@ -349,7 +348,7 @@ function App() {
   const previewDerecha = listaVideos[previewsFijas.der] || null;
 
   return (
-    <div className="contenedor-tiktok">
+    <div className="contenedor-tiktok" style={{ height: '100vh', overflow: 'hidden', position: 'relative' }}>
       {/* Botón flotante Logout */}
       <button 
         onClick={manejarLogout}
@@ -381,6 +380,7 @@ function App() {
                 <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
               </div>
 
+              {/* MODIFICACIÓN: Altura calculada para no solaparse con la barra de navegación de 65px */}
               <video
                 ref={videoRef}
                 className="reproductor-principal"
@@ -398,9 +398,15 @@ function App() {
                     else videoRef.current.pause();
                   }
                 }}
+                style={{
+                  width: '100%',
+                  height: 'calc(100vh - 65px)',
+                  objectFit: 'contain',
+                  backgroundColor: '#000'
+                }}
               />
 
-              {/* BOTONERA FLOTANTE DE INTERACCIÓN (ESTILO TIKTOK: LIKES + COMENTARIOS) */}
+              {/* BOTONERA FLOTANTE DE INTERACCIÓN (SOLO LIKES, COMENTARIOS DESACTIVADOS) */}
               <div style={{
                 position: 'absolute', right: '15px', bottom: '160px', zIndex: 50,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'
@@ -425,8 +431,8 @@ function App() {
                   </span>
                 </div>
 
-                {/* NUEVO: Botón de Comentarios */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                {/* MENSAJES/COMENTARIOS DESACTIVADOS TEMPORALMENTE PERO CON EL CÓDIGO GUARDADO ABAJO */}
+                {/* <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                   <button
                     onClick={() => setMostrarComentarios(true)}
                     style={{
@@ -441,72 +447,12 @@ function App() {
                   <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 'bold', textShadow: '1px 1px 2px #000', fontFamily: 'sans-serif' }}>
                     {listaComentarios.length}
                   </span>
-                </div>
+                </div> 
+                */}
               </div>
 
-              {/* VENTANA INFERIOR DESLIZABLE (BOTTOM SHEET) PARA COMENTARIOS */}
-              {mostrarComentarios && (
-                <div style={{
-                  position: 'absolute', bottom: 0, left: 0, width: '100vw', height: '60vh',
-                  backgroundColor: '#111111', borderTopLeftRadius: '16px', borderTopRightRadius: '16px',
-                  zIndex: 120, display: 'flex', flexDirection: 'column', boxShadow: '0 -5px 25px rgba(0,0,0,0.8)',
-                  paddingBottom: 'env(safe-area-inset-bottom)', fontFamily: 'sans-serif'
-                }}>
-                  {/* Encabezado del panel */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderBottom: '1px solid #222' }}>
-                    <span style={{ color: '#ffffff', fontWeight: 'bold', fontSize: '15px' }}>Comentarios ({listaComentarios.length})</span>
-                    <button 
-                      onClick={() => setMostrarComentarios(false)}
-                      style={{ background: 'none', border: 'none', color: '#ff0055', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer' }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  {/* Lista con scroll de mensajes */}
-                  <div style={{ flex: 1, overflowY: 'auto', padding: '15px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {listaComentarios.map((com) => (
-                      <div key={com.id} style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#181818', padding: '10px', borderRadius: '8px' }}>
-                        <span style={{ color: '#00ffcc', fontSize: '11px', fontWeight: 'bold', marginBottom: '3px' }}>
-                          {com.user_email.split('@')[0]} {/* Muestra solo el nombre antes del @ */}
-                        </span>
-                        <span style={{ color: '#ffffff', fontSize: '13px', lineHeight: '1.4' }}>{com.contenido}</span>
-                      </div>
-                    ))}
-                    {listaComentarios.length === 0 && (
-                      <p style={{ color: '#555', textAlign: 'center', marginTop: '30px', fontSize: '13px' }}>Nadie comentó todavía. ¡Sé el primero!</p>
-                    )}
-                  </div>
-
-                  {/* Input fijado abajo para enviar un mensaje nuevo */}
-                  <form onSubmit={procesarEnvioComentario} style={{ display: 'flex', padding: '10px 15px', borderTop: '1px solid #222', backgroundColor: '#111' }}>
-                    <input 
-                      type="text" 
-                      placeholder="Escribí un comentario..."
-                      value={nuevoComentario}
-                      onChange={(e) => setNuevoComentario(e.target.value)}
-                      maxLength={300}
-                      style={{
-                        flex: 1, padding: '10px 15px', backgroundColor: '#222', border: 'none',
-                        borderRadius: '20px', color: '#fff', fontSize: '14px', outline: 'none'
-                      }}
-                    />
-                    <button 
-                      type="submit" 
-                      disabled={!nuevoComentario.trim() || enviandoComentario}
-                      style={{
-                        marginLeft: '10px', backgroundColor: '#00ffcc', color: '#000',
-                        border: 'none', borderRadius: '20px', padding: '0 15px', fontWeight: 'bold',
-                        fontSize: '13px', cursor: 'pointer', opacity: nuevoComentario.trim() ? 1 : 0.5
-                      }}
-                    >
-                      {enviandoComentario ? "..." : "Enviar"}
-                    </button>
-                  </form>
-                </div>
-              )}
-
-              <div className="barra-previews">
+              {/* MODIFICACIÓN: Ajustado posición 'bottom: 65px' en previews para que queden flotando 100% visibles arriba de la barra de botones */}
+              <div className="barra-previews" style={{ bottom: '75px', zIndex: 60 }}>
                 {previewIzquierda && (
                   <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)}>
                     <span className="badge-categoria">{previewIzquierda.categoria}</span>
@@ -598,7 +544,7 @@ function App() {
 
       {vistaActiva === 'mis-videos' && <MisVideos />}
 
-      {/* MENÚ DE NAVEGACIÓN MÓVIL */}
+      {/* MENÚ DE NAVEGACIÓN MÓVIL (Alto exacto de 65px fijado) */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, width: '100vw', height: '65px',
         backgroundColor: '#000000', borderTop: '1px solid #222', zIndex: 90,
