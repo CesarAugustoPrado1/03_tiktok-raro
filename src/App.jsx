@@ -38,7 +38,7 @@ return (
                   <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
                 </div>
 
-                {/* VIDEO PRINCIPAL: Ocupa el 100% real de la pantalla de fondo */}
+                {/* VIDEO PRINCIPAL: Asegura ocupar el fondo completo real sin deformar ni recortar */}
                 <video
                   ref={videoRef}
                   className="reproductor-principal"
@@ -57,9 +57,9 @@ return (
                     }
                   }}
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover', // Cambiado a 'cover' para que sea full screen real como TikTok
+                    width: '100vw',
+                    height: '100vh',
+                    objectFit: 'cover',
                     backgroundColor: '#000',
                     position: 'absolute',
                     top: 0,
@@ -70,7 +70,7 @@ return (
 
                 {/* BOTONERA FLOTANTE DE INTERACCIÓN (LIKE) */}
                 <div style={{
-                  position: 'absolute', right: '15px', bottom: '260px', zIndex: 70,
+                  position: 'absolute', right: '15px', bottom: '280px', zIndex: 70,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
@@ -93,52 +93,126 @@ return (
                   </div>
                 </div>
 
-                {/* BARRA DE PREVIEWS Y BOTÓN INTERMEDIO (+): Flotando justo arriba del menú */}
-                <div className="barra-previews" style={{ 
-                  position: 'absolute', 
-                  bottom: '85px', // Separación milimétrica para que flote limpio sobre el menú inferior
+                {/* CONTENEDOR INTEGRADO EN LA BASE: Evita que las previews y el menú colisionen o se pisen */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
                   left: 0,
                   width: '100%',
-                  zIndex: 60, 
-                  height: '90px', 
+                  zIndex: 60,
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-around',
-                  padding: '0 10px',
+                  flexDirection: 'column',
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0))',
+                  paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
                   boxSizing: 'border-box'
                 }}>
-                  {previewIzquierda && (
-                    <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)} style={{ margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-                      <span className="badge-categoria">{previewIzquierda.categoria}</span>
-                      <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
-                    </div>
-                  )}
+                  
+                  {/* BARRA DE PREVIEWS (Interna en el flujo vertical de abajo) */}
+                  <div className="barra-previews" style={{ 
+                    position: 'relative', 
+                    bottom: '0', 
+                    width: '100%',
+                    height: '90px', 
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-around',
+                    padding: '0 10px',
+                    boxSizing: 'border-box',
+                    marginBottom: '5px'
+                  }}>
+                    {previewIzquierda && (
+                      <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)} style={{ margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                        <span className="badge-categoria">{previewIzquierda.categoria}</span>
+                        <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
+                      </div>
+                    )}
 
-                  {/* Botón Central Más (+) */}
-                  <div style={{ width: '56px', height: '56px', zIndex: 65, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* Botón Central Más (+) */}
+                    <div style={{ width: '56px', height: '56px', zIndex: 65, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          if (videoRef.current) videoRef.current.pause();
+                          setMostrarMenuOrigen(true);
+                        }}
+                        style={{ 
+                          width: '52px', height: '52px', backgroundColor: '#00ffcc', color: '#000000',
+                          borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                          fontSize: '28px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0, 255, 204, 0.6)', 
+                          border: 'none', cursor: 'pointer'
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {previewDerecha && (
+                      <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)} style={{ margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                        <span className="badge-categoria">{previewDerecha.categoria}</span>
+                        <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* MENÚ DE BOTONES DE INICIO, DESCUBRIR Y MIS VIDEOS */}
+                  <div style={{
+                    width: '100%', height: '65px',
+                    display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+                    boxSizing: 'border-box'
+                  }}>
                     <button 
-                      type="button" 
                       onClick={() => {
-                        if (videoRef.current) videoRef.current.pause();
-                        setMostrarMenuOrigen(true);
+                        setVistaActiva('feed');
+                        setTimeout(() => { if (videoRef.current && listaVideos.length > 0) videoRef.current.play(); }, 100);
                       }}
-                      style={{ 
-                        width: '52px', height: '52px', backgroundColor: '#00ffcc', color: '#000000',
-                        borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                        fontSize: '28px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0, 255, 204, 0.6)', 
-                        border: 'none', cursor: 'pointer'
+                      style={{
+                        background: 'none', border: 'none', color: vistaActiva === 'feed' ? '#00ffcc' : '#ffffff',
+                        opacity: vistaActiva === 'feed' ? 1 : 0.6, fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
                       }}
                     >
-                      +
+                      <span style={{ fontSize: '18px' }}>🏠</span> Inicio
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        if (videoRef.current) videoRef.current.pause();
+                        setVistaActiva('descubrir');
+                      }}
+                      style={{
+                        background: 'none', border: 'none', color: vistaActiva === 'descubrir' ? '#00ffcc' : '#ffffff',
+                        opacity: vistaActiva === 'descubrir' ? 1 : 0.6, fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+                      }}
+                    >
+                      <span style={{ fontSize: '18px' }}>🔍</span> Descubrir
+                    </button>
+
+                    {vistaActiva !== 'feed' && (
+                      <button 
+                        onClick={() => setMostrarMenuOrigen(true)}
+                        style={{ 
+                          width: '40px', height: '40px', backgroundColor: '#00ffcc', color: '#000000',
+                          borderRadius: '50%', border: 'none', fontSize: '22px', fontWeight: 'bold', cursor: 'pointer',
+                          boxShadow: '0 0 10px rgba(0, 255, 204, 0.4)'
+                        }}
+                      >
+                        +
+                      </button>
+                    )}
+
+                    <button 
+                      onClick={() => {
+                        if (videoRef.current) videoRef.current.pause();
+                        setVistaActiva('mis-videos');
+                      }}
+                      style={{
+                        background: 'none', border: 'none', color: vistaActiva === 'mis-videos' ? '#00ffcc' : '#ffffff',
+                        opacity: vistaActiva === 'mis-videos' ? 1 : 0.6, fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+                      }}
+                    >
+                      <span style={{ fontSize: '18px' }}>🎬</span> Mis Videos
                     </button>
                   </div>
 
-                  {previewDerecha && (
-                    <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)} style={{ margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-                      <span className="badge-categoria">{previewDerecha.categoria}</span>
-                      <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" />
-                    </div>
-                  )}
                 </div>
               </>
             )}
@@ -202,66 +276,6 @@ return (
             <MisVideos />
           </div>
         )}
-      </div>
-
-      {/* MENÚ DE NAVEGACIÓN INFERIOR (Flotando con fondo traslúcido estilizado sobre el video) */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, width: '100%', height: '70px',
-        backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(255, 255, 255, 0.08)', zIndex: 95,
-        display: 'flex', justifyContent: 'space-around', alignItems: 'center', 
-        paddingBottom: 'max(8px, env(safe-area-inset-bottom))', boxSizing: 'border-box'
-      }}>
-        <button 
-          onClick={() => {
-            setVistaActiva('feed');
-            setTimeout(() => { if (videoRef.current && listaVideos.length > 0) videoRef.current.play(); }, 100);
-          }}
-          style={{
-            background: 'none', border: 'none', color: vistaActiva === 'feed' ? '#00ffcc' : '#ffffff',
-            opacity: vistaActiva === 'feed' ? 1 : 0.6, fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-          }}
-        >
-          <span style={{ fontSize: '18px' }}>🏠</span> Inicio
-        </button>
-
-        <button 
-          onClick={() => {
-            if (videoRef.current) videoRef.current.pause();
-            setVistaActiva('descubrir');
-          }}
-          style={{
-            background: 'none', border: 'none', color: vistaActiva === 'descubrir' ? '#00ffcc' : '#ffffff',
-            opacity: vistaActiva === 'descubrir' ? 1 : 0.6, fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-          }}
-        >
-          <span style={{ fontSize: '18px' }}>🔍</span> Descubrir
-        </button>
-
-        {vistaActiva !== 'feed' && (
-          <button 
-            onClick={() => setMostrarMenuOrigen(true)}
-            style={{ 
-              width: '40px', height: '40px', backgroundColor: '#00ffcc', color: '#000000',
-              borderRadius: '50%', border: 'none', fontSize: '22px', fontWeight: 'bold', cursor: 'pointer',
-              boxShadow: '0 0 10px rgba(0, 255, 204, 0.4)'
-            }}
-          >
-            +
-          </button>
-        )}
-
-        <button 
-          onClick={() => {
-            if (videoRef.current) videoRef.current.pause();
-            setVistaActiva('mis-videos');
-          }}
-          style={{
-            background: 'none', border: 'none', color: vistaActiva === 'mis-videos' ? '#00ffcc' : '#ffffff',
-            opacity: vistaActiva === 'mis-videos' ? 1 : 0.6, fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-          }}
-        >
-          <span style={{ fontSize: '18px' }}>🎬</span> Mis Videos
-        </button>
       </div>
 
       {/* MODALS Y INPUTS */}
