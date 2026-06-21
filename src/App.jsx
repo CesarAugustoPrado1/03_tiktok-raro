@@ -200,8 +200,7 @@ function App() {
 
   return (
     <div className="contenedor-tiktok">
-      {/* INYECCIÓN ATÓMICA DE ESTILOS: fuerza el diseño fullscreen absoluto pisando cualquier archivo CSS */}
-      {/* INYECCIÓN ATÓMICA DE ESTILOS: Esto obliga al video horizontal a desbordarse por los costados */}
+      {/* INYECCIÓN ATÓMICA DE ESTILOS: fuerza el diseño fullscreen absoluto desbordando los costados */}
       <style>{`
         html, body, #root, .contenedor-tiktok {
           margin: 0 !important;
@@ -217,17 +216,16 @@ function App() {
         .reproductor-principal-full {
           width: 100vw !important;
           height: 100vh !important;
-          object-fit: cover !important; /* Corta los costados y prioriza el alto */
+          object-fit: cover !important;
           object-position: center center !important;
           background-color: #000000 !important;
           display: block !important;
         }
 
-        /* Si el celular está en vertical y el video se resiste, lo sobredimensionamos */
         @media (max-width: 480px) {
           .reproductor-principal-full {
             min-height: 100vh !important;
-            min-width: 177.77vh !important; /* Fuerza la proporción 16:9 horizontal a expandirse al alto de la pantalla */
+            min-width: 177.77vh !important;
             width: auto !important;
             height: 100vh !important;
           }
