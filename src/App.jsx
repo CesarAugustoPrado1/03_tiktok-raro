@@ -199,14 +199,8 @@ function App() {
   });
 
   return (
-    <div className="contenedor-tiktok" style={{ 
-      height: '100vh', 
-      width: '100vw',
-      overflow: 'hidden', 
-      position: 'relative', 
-      backgroundColor: '#000'
-    }}>
-      {/* Botón flotante Logout (zIndex alto para estar sobre el video) */}
+    <div className="contenedor-tiktok">
+      {/* Botón flotante Logout */}
       <button 
         onClick={manejarLogout}
         style={{
@@ -234,17 +228,17 @@ function App() {
               </div>
             ) : (
               <>
-                <div className="contenedor-linea-tiempo" style={{ zIndex: 75 }}>
+                <div className="contenedor-linea-tiempo">
                   <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
                 </div>
 
-                {/* CONTENEDOR ENVOLVENTE Y ELEMENTO VIDEO: CORRECCIÓN FULMINANTE PARA VIDEOS HORIZONTALES */}
+                {/* CONTENEDOR ENVOLVENTE FULLSCREEN REAL */}
                 <div style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
-                  width: '100vw',
-                  height: '100vh',
+                  width: '100%',
+                  height: '100%',
                   zIndex: 10,
                   overflow: 'hidden',
                   backgroundColor: '#000',
@@ -258,13 +252,13 @@ function App() {
                     src={videoPrincipal.url_video}
                     autoPlay
                     playsInline
-                    controls
+                    muted // CORRECCIÓN: Evita bloqueos de autoplay del navegador
                     preload="metadata"
                     onTimeUpdate={controlarProgresoVideo}
                     onEnded={alTerminarVideoCompleto}
                     onClick={() => {
                       if (videoRef.current) {
-                        videoRef.current.muted = false;
+                        videoRef.current.muted = false; // Desmutea automáticamente al interactuar
                         if (videoRef.current.paused) videoRef.current.play();
                         else videoRef.current.pause();
                       }
@@ -272,18 +266,16 @@ function App() {
                     style={{
                       width: '100%',
                       height: '100%',
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'cover',   // Obliga a rellenar recortando excesos horizontales
-                      transform: 'scale(1.04)', // Multiplicador táctico: elimina cualquier línea negra lateral rebelde
+                      objectFit: 'cover', // Recorta excedentes horizontales de forma implacable
+                      transform: 'scale(1.02)', // Remueve micro-líneas muertas remanentes
                       backgroundColor: '#000'
                     }}
                   />
                 </div>
 
-                {/* BOTONERA FLOTANTE DE INTERACCIÓN (LIKE) (zIndex sobre el video) */}
+                {/* BOTONERA FLOTANTE DE INTERACCIÓN (LIKE) */}
                 <div style={{
-                  position: 'absolute', right: '15px', bottom: '280px', zIndex: 70,
+                  position: 'absolute', right: '15px', bottom: '260px', zIndex: 70,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
@@ -306,37 +298,15 @@ function App() {
                   </div>
                 </div>
 
-                {/* CONTENEDOR INTEGRADO EN LA BASE (zIndex sobre el video) */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  width: '100%',
-                  zIndex: 60,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  background: 'linear-gradient(to top, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0))', 
-                  paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
-                  boxSizing: 'border-box'
-                }}>
+                {/* COMPONENTE INTEGRADO DE CONTROLES E INFERIORES */}
+                <div className="panel-inferior-feed">
                   
                   {/* BARRA DE PREVIEWS */}
-                  <div className="barra-previews" style={{ 
-                    position: 'relative', 
-                    bottom: '0', 
-                    width: '100%',
-                    height: '90px', 
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-around',
-                    padding: '0 10px',
-                    boxSizing: 'border-box',
-                    marginBottom: '5px'
-                  }}>
+                  <div className="barra-previews">
                     {previewIzquierda && (
-                      <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)} style={{ margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                      <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)} style={{ margin: 0 }}>
                         <span className="badge-categoria">{previewIzquierda.categoria}</span>
-                        <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
                       </div>
                     )}
 
@@ -360,16 +330,16 @@ function App() {
                     </div>
 
                     {previewDerecha && (
-                      <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)} style={{ margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                      <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)} style={{ margin: 0 }}>
                         <span className="badge-categoria">{previewDerecha.categoria}</span>
-                        <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" />
                       </div>
                     )}
                   </div>
 
-                  {/* MENÚ DE BOTONES DE INICIO, DESCUBRIR Y MIS VIDEOS */}
+                  {/* MENÚ DE BOTONES DE NAVEGACIÓN INFERIOR */}
                   <div style={{
-                    width: '100%', height: '65px',
+                    width: '100%', height: '60px',
                     display: 'flex', justifyContent: 'space-around', alignItems: 'center',
                     boxSizing: 'border-box'
                   }}>
@@ -432,7 +402,7 @@ function App() {
           </>
         )}
 
-        {/* Las vistas de Descubrir y Mis Videos tapan el video base */}
+        {/* VISTAS DE SOPORTE */}
         {vistaActiva === 'descubrir' && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 75px)', padding: '20px', paddingTop: '60px', fontFamily: 'sans-serif', color: '#fff', overflowY: 'auto', zIndex: 20, backgroundColor: '#000' }}>
             <h2 style={{ color: '#00ffcc', fontSize: '22px', marginBottom: '15px' }}>Descubrir Contenido 🔍</h2>

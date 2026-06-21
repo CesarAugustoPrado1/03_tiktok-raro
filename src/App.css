@@ -1,32 +1,37 @@
 /* src/App.css */
 
-body, html {
+body, html, #root {
   margin: 0;
   padding: 0;
   background-color: #000;
-  font-family: sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   height: 100vh;
+  width: 100vw;
   overflow: hidden;
 }
 
+/* Contenedor adaptativo: 100% en celular, responsivo sin romper el feed */
 .contenedor-tiktok {
-  max-width: 450px;
-  margin: 0 auto;
+  width: 100vw;
+  max-width: 100vw;
   height: 100vh;
   position: relative;
   background: #000;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border-left: 1px solid #222;
-  border-right: 1px solid #222;
+  overflow: hidden;
+  margin: 0 auto;
 }
 
+/* Fuerza el rellenado absoluto eliminando bordes laterales negros */
 .reproductor-principal {
-  width: 100%;
-  height: 100vh;
-  object-fit: cover;
-  background-color: #111;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100%;
+  min-height: 100%;
+  object-fit: cover !important; 
+  background-color: #000;
   display: block;
 }
 
@@ -35,9 +40,9 @@ body, html {
   top: 0;
   left: 0;
   width: 100%;
-  height: 6px;
-  background: rgba(255,255,255,0.2);
-  z-index: 20;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  z-index: 75;
 }
 
 .linea-progreso {
@@ -46,49 +51,60 @@ body, html {
   transition: width 0.1s linear;
 }
 
-.barra-previews {
+/* Contenedor inferior dinámico para agrupar previews y navegación */
+.panel-inferior-feed {
   position: absolute;
-  bottom: 40px;
+  bottom: 0;
   left: 0;
   width: 100%;
+  z-index: 60;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
+  flex-direction: column;
+  background: linear-gradient(to top, rgba(0,0,0,0.95) 70%, rgba(0,0,0,0));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
   box-sizing: border-box;
-  z-index: 10;
+}
+
+.barra-previews {
+  width: 100%;
+  height: 95px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 15px;
+  box-sizing: border-box;
+  margin-bottom: 5px;
 }
 
 .tarjeta-preview {
-  width: 110px;
-  height: 150px;
+  width: 65px;
+  height: 85px;
   background: #111;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
-  border: 2px solid rgba(255,255,255,0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
   cursor: pointer;
   position: relative;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.7);
 }
 
 .video-thumbnail {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: brightness(0.85);
-  background: #000;
+  filter: brightness(0.8);
 }
 
 .badge-categoria {
   position: absolute;
-  top: 5px;
+  bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.75);
   color: #00ffcc;
-  font-size: 10px;
-  padding: 3px 6px;
-  border-radius: 4px;
+  font-size: 8px;
+  padding: 2px 5px;
+  border-radius: 3px;
   text-transform: uppercase;
   font-weight: bold;
   z-index: 5;
@@ -97,12 +113,12 @@ body, html {
 
 /* Modales de subida */
 .modal-emergente {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.85);
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
   z-index: 100;
   display: flex;
   align-items: center;
@@ -113,7 +129,7 @@ body, html {
 }
 
 .tarjeta-modal {
-  background: #111;
+  background: #1e1e1e;
   border: 1px solid #333;
   width: 100%;
   max-width: 360px;
