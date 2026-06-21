@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import MisVideos from './components/MisVideos';
-import FormularioSubida from './components/FormularioSubida';
+import MisVideos from './MisVideos.jsx';
+import FormularioSubida from './FormularioSubida.jsx';
 import { supabase } from './supabaseClient';
 import './App.css?v=1.0.1';
 
