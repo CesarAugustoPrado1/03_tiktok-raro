@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import MisVideos from './components/MisVideos';
 import FormularioSubida from './components/FormularioSubida';
 import { supabase } from './supabaseClient';
-import './App.css';
+import './App.css?v=1.0.1';
 
 function App() {
   const [sesion, setSesion] = useState(null);
