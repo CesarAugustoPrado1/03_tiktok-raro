@@ -1,4 +1,204 @@
-return (
+import React, { useState, useEffect, useRef } from 'react';
+import MisVideos from './components/MisVideos';
+import FormularioSubida from './components/FormularioSubida';
+import { supabase } from './supabaseClient';
+import './App.css';
+
+function App() {
+  const [sesion, setSesion] = useState(null);
+  const [listaVideos, setListaVideos] = useState([]);
+  const [indiceVideoActual, setIndiceVideoActual] = useState(0);
+  const [vistaActiva, setVistaActiva] = useState('feed'); // 'feed', 'descubrir', 'mis-videos'
+  const [terminoBusqueda, setTerminoBusqueda] = useState('');
+  const [progreso, setProgreso] = useState(0);
+  const [usuarioDioLike, setUsuarioDioLike] = useState(false);
+  const [likesContador, setLikesContador] = useState(0);
+
+  // Estados para modals de subida
+  const [mostrarModal, setMostrarModal] = useState(false);
+  const [mostrarMenuOrigen, setMostrarMenuOrigen] = useState(false);
+  const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
+
+  const videoRef = useRef(null);
+  const inputCamaraRef = useRef(null);
+  const inputGaleriaRef = useRef(null);
+
+  // Configuración de categorías fijas para previews
+  const previewsFijas = { izq: 'Fútbol', der: 'Tecnología' };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSesion(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSesion(session);
+    });
+
+    descargarVideosGlobales();
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (listaVideos.length > 0) {
+      verificarLikeUsuario();
+      contarLikesTotales();
+    }
+  }, [indiceVideoActual, listaVideos]);
+
+  async function descargarVideosGlobales() {
+    try {
+      const { data, error } = await supabase
+        .from('videos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setListaVideos(data || []);
+    } catch (err) {
+      console.error("Error al descargar videos:", err.message);
+    }
+  }
+
+  async function verificarLikeUsuario() {
+    if (!sesion || listaVideos.length === 0) return;
+    const videoId = listaVideos[indiceVideoActual]?.id;
+    if (!videoId) return;
+
+    const { data, error } = await supabase
+      .from('likes')
+      .select('*')
+      .eq('video_id', videoId)
+      .eq('user_id', sesion.user.id);
+
+    setUsuarioDioLike(!error && data && data.length > 0);
+  }
+
+  async function contarLikesTotales() {
+    if (listaVideos.length === 0) return;
+    const videoId = listaVideos[indiceVideoActual]?.id;
+    if (!videoId) return;
+
+    const { count, error } = await supabase
+      .from('likes')
+      .select('*', { count: 'exact', head: true })
+      .eq('video_id', videoId);
+
+    setLikesContador(error ? 0 : count || 0);
+  }
+
+  async function manejarBotonLike() {
+    if (!sesion || listaVideos.length === 0) return;
+    const videoId = listaVideos[indiceVideoActual]?.id;
+    if (!videoId) return;
+
+    if (usuarioDioLike) {
+      const { error } = await supabase
+        .from('likes')
+        .delete()
+        .eq('video_id', videoId)
+        .eq('user_id', sesion.user.id);
+
+      if (!error) {
+        setUsuarioDioLike(false);
+        setLikesContador(prev => Math.max(0, prev - 1));
+      }
+    } else {
+      const { error } = await supabase
+        .from('likes')
+        .insert([{ video_id: videoId, user_id: sesion.user.id }]);
+
+      if (!error) {
+        setUsuarioDioLike(true);
+        setLikesContador(prev => prev + 1);
+      }
+    }
+  }
+
+  function controlarProgresoVideo() {
+    if (videoRef.current) {
+      const actual = videoRef.current.currentTime;
+      const total = videoRef.current.duration || 1;
+      setProgreso((actual / total) * 100);
+    }
+  }
+
+  function alTerminarVideoCompleto() {
+    if (listaVideos.length > 1) {
+      setIndiceVideoActual(prev => (prev + 1) % listaVideos.length);
+    }
+  }
+
+  function cambiarVideo(nuevoIndice) {
+    if (nuevoIndice >= 0 && nuevoIndice < listaVideos.length) {
+      setIndiceVideoActual(nuevoIndice);
+      setProgreso(0);
+    }
+  }
+
+  function elegirManual(categoriaFija, categoriaActual) {
+    if (categoriaFija === categoriaActual) {
+      alTerminarVideoCompleto();
+      return;
+    }
+    const idx = listaVideos.findIndex(v => v.categoria?.toLowerCase() === categoriaFija.toLowerCase());
+    if (idx !== -1) {
+      cambiarVideo(idx);
+    } else {
+      alTerminarVideoCompleto();
+    }
+  }
+
+  function manejarEleccionOrigen(origen) {
+    setMostrarMenuOrigen(false);
+    if (origen === 'camara' && inputCamaraRef.current) {
+      inputCamaraRef.current.click();
+    } else if (origen === 'galeria' && inputGaleriaRef.current) {
+      inputGaleriaRef.current.click();
+    }
+  }
+
+  function prepararArchivo(e) {
+    const file = e.target.files[0];
+    if (file) {
+      setArchivoSeleccionado(file);
+      setMostrarModal(true);
+    }
+  }
+
+  function manejarCierreModal(recargar) {
+    setMostrarModal(false);
+    setArchivoSeleccionado(null);
+    if (recargar) descargarVideosGlobales();
+    if (videoRef.current && vistaActiva === 'feed' && listaVideos.length > 0) {
+      videoRef.current.play();
+    }
+  }
+
+  async function manejarLogout() {
+    await supabase.auth.signOut();
+  }
+
+  const videoPrincipal = listaVideos[indiceVideoActual];
+  
+  const obtenerPreviewPorCategoria = (cat) => {
+    return listaVideos.find(v => v.categoria?.toLowerCase() === cat.toLowerCase()) || listaVideos[(indiceVideoActual + 1) % listaVideos.length];
+  };
+
+  const previewIzquierda = listaVideos.length > 0 ? obtenerPreviewPorCategoria(previewsFijas.izq) : null;
+  const previewDerecha = listaVideos.length > 0 ? obtenerPreviewPorCategoria(previewsFijas.der) : null;
+
+  const videosFiltrados = listaVideos.filter(v => {
+    const termino = terminoBusqueda.toLowerCase();
+    return (
+      v.titulo?.toLowerCase().includes(termino) ||
+      v.categoria?.toLowerCase().includes(termino) ||
+      v.sub_categoria?.toLowerCase().includes(termino)
+    );
+  });
+
+  return (
     <div className="contenedor-tiktok" style={{ 
       height: '100vh', 
       width: '100vw',
@@ -38,36 +238,48 @@ return (
                   <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
                 </div>
 
-                {/* VIDEO PRINCIPAL: AHORA SÍ, 100% PANTALLA COMPLETA REAL SIN BORDES */}
-                <video
-                  ref={videoRef}
-                  className="reproductor-principal"
-                  src={videoPrincipal.url_video}
-                  autoPlay
-                  playsInline
-                  controls
-                  preload="metadata"
-                  onTimeUpdate={controlarProgresoVideo}
-                  onEnded={alTerminarVideoCompleto}
-                  onClick={() => {
-                    if (videoRef.current) {
-                      videoRef.current.muted = false;
-                      if (videoRef.current.paused) videoRef.current.play();
-                      else videoRef.current.pause();
-                    }
-                  }}
-                  style={{
-                    // ESTOS SON LOS CAMBIOS CRÍTICOS PARA EL FULL SCREEN
-                    width: '100vw',      // Ocupa el 100% del ancho de la ventana
-                    height: '100vh',     // Ocupa el 100% del alto de la ventana
-                    objectFit: 'cover',   // Cubre todo el espacio, recortando si es necesario para evitar bordes negros
-                    position: 'absolute', // Se posiciona respecto al contenedor padre
-                    top: 0,               // Pegado arriba
-                    left: 0,              // Pegado a la izquierda
-                    zIndex: 10,           // Capa base del feed
-                    backgroundColor: '#000' // Fondo negro por si acaso durante la carga
-                  }}
-                />
+                {/* CONTENEDOR ENVOLVENTE Y ELEMENTO VIDEO: CORRECCIÓN FULMINANTE PARA VIDEOS HORIZONTALES */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100vw',
+                  height: '100vh',
+                  zIndex: 10,
+                  overflow: 'hidden',
+                  backgroundColor: '#000',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <video
+                    ref={videoRef}
+                    className="reproductor-principal"
+                    src={videoPrincipal.url_video}
+                    autoPlay
+                    playsInline
+                    controls
+                    preload="metadata"
+                    onTimeUpdate={controlarProgresoVideo}
+                    onEnded={alTerminarVideoCompleto}
+                    onClick={() => {
+                      if (videoRef.current) {
+                        videoRef.current.muted = false;
+                        if (videoRef.current.paused) videoRef.current.play();
+                        else videoRef.current.pause();
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'cover',   // Obliga a rellenar recortando excesos horizontales
+                      transform: 'scale(1.04)', // Multiplicador táctico: elimina cualquier línea negra lateral rebelde
+                      backgroundColor: '#000'
+                    }}
+                  />
+                </div>
 
                 {/* BOTONERA FLOTANTE DE INTERACCIÓN (LIKE) (zIndex sobre el video) */}
                 <div style={{
@@ -103,12 +315,12 @@ return (
                   zIndex: 60,
                   display: 'flex',
                   flexDirection: 'column',
-                  background: 'linear-gradient(to top, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0))', // Degradado para legibilidad
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0))', 
                   paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
                   boxSizing: 'border-box'
                 }}>
                   
-                  {/* BARRA DE PREVIEWS (Interna en el flujo vertical de abajo) */}
+                  {/* BARRA DE PREVIEWS */}
                   <div className="barra-previews" style={{ 
                     position: 'relative', 
                     bottom: '0', 
@@ -124,7 +336,7 @@ return (
                     {previewIzquierda && (
                       <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)} style={{ margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
                         <span className="badge-categoria">{previewIzquierda.categoria}</span>
-                        <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
+                        <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                     )}
 
@@ -150,7 +362,7 @@ return (
                     {previewDerecha && (
                       <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)} style={{ margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
                         <span className="badge-categoria">{previewDerecha.categoria}</span>
-                        <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" />
+                        <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                     )}
                   </div>
@@ -220,7 +432,7 @@ return (
           </>
         )}
 
-        {/* Las vistas de Descubrir y Mis Videos mantienen su fondo negro y zIndex para tapar el video del feed */}
+        {/* Las vistas de Descubrir y Mis Videos tapan el video base */}
         {vistaActiva === 'descubrir' && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 75px)', padding: '20px', paddingTop: '60px', fontFamily: 'sans-serif', color: '#fff', overflowY: 'auto', zIndex: 20, backgroundColor: '#000' }}>
             <h2 style={{ color: '#00ffcc', fontSize: '22px', marginBottom: '15px' }}>Descubrir Contenido 🔍</h2>
@@ -280,7 +492,7 @@ return (
         )}
       </div>
 
-      {/* MODALS Y INPUTS (zIndex muy alto) */}
+      {/* MODALS Y INPUTS */}
       {mostrarModal && <FormularioSubida archivo={archivoSeleccionado} alCerrar={manejarCierreModal} />}
 
       {mostrarMenuOrigen && (
@@ -304,3 +516,6 @@ return (
       <input type="file" accept="video/mp4,video/webm,video/ogg,video/*" ref={inputGaleriaRef} onChange={prepararArchivo} style={{ display: 'none' }} />
     </div>
   );
+}
+
+export default App;
