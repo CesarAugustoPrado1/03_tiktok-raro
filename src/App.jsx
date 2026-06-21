@@ -200,11 +200,34 @@ function App() {
 
   return (
     <div className="contenedor-tiktok">
+      {/* INYECCIÓN ATÓMICA DE ESTILOS: fuerza el diseño fullscreen absoluto pisando cualquier archivo CSS */}
+      <style>{`
+        html, body, #root, .contenedor-tiktok {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100vw !important;
+          max-width: 100vw !important;
+          height: 100vh !important;
+          max-height: 100vh !important;
+          overflow: hidden !important;
+          background-color: #000000 !important;
+        }
+        .reproductor-principal-full {
+          width: 100vw !important;
+          height: 100vh !important;
+          object-fit: cover !important;
+          object-position: center !important;
+          transform: scale(1.05) !important;
+          background-color: #000000 !important;
+          display: block !important;
+        }
+      `}</style>
+
       {/* Botón flotante Logout */}
       <button 
         onClick={manejarLogout}
         style={{
-          position: 'absolute', top: '15px', right: '15px', zIndex: 80,
+          position: 'absolute', top: '15px', right: '15px', zIndex: '80',
           backgroundColor: 'rgba(255, 255, 255, 0.15)', color: '#fff',
           border: '1px solid rgba(255, 255, 255, 0.2)', padding: '6px 12px',
           borderRadius: '20px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold',
@@ -221,61 +244,54 @@ function App() {
             {!videoPrincipal ? (
               <div style={{ 
                 color: '#888', textAlign: 'center', paddingTop: '35vh', 
-                paddingLeft: '20px', paddingRight: '20px', fontFamily: 'sans-serif', zIndex: 20, position: 'relative'
+                paddingLeft: '20px', paddingRight: '20px', fontFamily: 'sans-serif', zIndex: '20', position: 'relative'
               }}>
                 <p style={{ color: '#00ffcc', fontSize: '18px', fontWeight: 'bold' }}>✨ ¡Plataforma lista!</p>
                 <p style={{ fontSize: '14px', lineHeight: '1.5' }}>Todavía no hay videos globales en la base de datos.<br />Tocá el botón <b>+</b> para subir el primero.</p>
               </div>
             ) : (
               <>
-                <div className="contenedor-linea-tiempo">
+                <div className="contenedor-linea-tiempo" style={{ zIndex: '30' }}>
                   <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
                 </div>
 
-                {/* CONTENEDOR ENVOLVENTE FULLSCREEN REAL */}
+                {/* CONTENEDOR ENVOLVENTE FULLSCREEN FIXED REAL */}
                 <div style={{
-                  position: 'absolute',
+                  position: 'fixed',
                   top: 0,
                   left: 0,
-                  width: '100%',
-                  height: '100%',
-                  zIndex: 10,
+                  width: '100vw',
+                  height: '100vh',
+                  zIndex: '10',
                   overflow: 'hidden',
-                  backgroundColor: '#000',
+                  backgroundColor: '#000000',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
                   <video
                     ref={videoRef}
-                    className="reproductor-principal"
+                    className="reproductor-principal-full"
                     src={videoPrincipal.url_video}
                     autoPlay
                     playsInline
-                    muted // CORRECCIÓN: Evita bloqueos de autoplay del navegador
+                    muted
                     preload="metadata"
                     onTimeUpdate={controlarProgresoVideo}
                     onEnded={alTerminarVideoCompleto}
                     onClick={() => {
                       if (videoRef.current) {
-                        videoRef.current.muted = false; // Desmutea automáticamente al interactuar
+                        videoRef.current.muted = false;
                         if (videoRef.current.paused) videoRef.current.play();
                         else videoRef.current.pause();
                       }
-                    }}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover', // Recorta excedentes horizontales de forma implacable
-                      transform: 'scale(1.02)', // Remueve micro-líneas muertas remanentes
-                      backgroundColor: '#000'
                     }}
                   />
                 </div>
 
                 {/* BOTONERA FLOTANTE DE INTERACCIÓN (LIKE) */}
                 <div style={{
-                  position: 'absolute', right: '15px', bottom: '260px', zIndex: 70,
+                  position: 'absolute', right: '15px', bottom: '260px', zIndex: '70',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
@@ -299,7 +315,7 @@ function App() {
                 </div>
 
                 {/* COMPONENTE INTEGRADO DE CONTROLES E INFERIORES */}
-                <div className="panel-inferior-feed">
+                <div className="panel-inferior-feed" style={{ zIndex: '70' }}>
                   
                   {/* BARRA DE PREVIEWS */}
                   <div className="barra-previews">
@@ -311,7 +327,7 @@ function App() {
                     )}
 
                     {/* Botón Central Más (+) */}
-                    <div style={{ width: '56px', height: '56px', zIndex: 65, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '56px', height: '56px', zIndex: '75', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <button 
                         type="button" 
                         onClick={() => {
@@ -404,7 +420,7 @@ function App() {
 
         {/* VISTAS DE SOPORTE */}
         {vistaActiva === 'descubrir' && (
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 75px)', padding: '20px', paddingTop: '60px', fontFamily: 'sans-serif', color: '#fff', overflowY: 'auto', zIndex: 20, backgroundColor: '#000' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 75px)', padding: '20px', paddingTop: '60px', fontFamily: 'sans-serif', color: '#fff', overflowY: 'auto', zIndex: '20', backgroundColor: '#000' }}>
             <h2 style={{ color: '#00ffcc', fontSize: '22px', marginBottom: '15px' }}>Descubrir Contenido 🔍</h2>
             
             <input 
@@ -456,7 +472,7 @@ function App() {
         )}
 
         {vistaActiva === 'mis-videos' && (
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 75px)', overflowY: 'auto', zIndex: 20, backgroundColor: '#000' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 75px)', overflowY: 'auto', zIndex: '20', backgroundColor: '#000' }}>
             <MisVideos />
           </div>
         )}
@@ -468,7 +484,7 @@ function App() {
       {mostrarMenuOrigen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 100, display: 'flex', justifyContent: 'center', alignItems: 'center'
+          backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: '100', display: 'flex', justifyContent: 'center', alignItems: 'center'
         }}>
           <div style={{
             backgroundColor: '#1e1e1e', border: '2px solid #00ffcc', borderRadius: '16px',
