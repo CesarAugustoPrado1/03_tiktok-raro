@@ -406,27 +406,27 @@ function App() {
                 }}
               />
 
-              {/* BOTONERA FLOTANTE DE INTERACCIÓN (CORAZÓN ME GUSTA ACTIVO) */}
+              {/* BOTONERA FLOTANTE DE INTERACCIÓN (CORAZÓN SUBIDO AL MEDIO LATERAL) */}
               <div style={{
-                position: 'absolute', right: '15px', bottom: '160px', zIndex: 50,
+                position: 'absolute', right: '15px', bottom: '45%', zIndex: 99,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'
               }}>
-                {/* Botón de Like - 100% FUNCIONAL */}
+                {/* Botón de Like - Ajustado y siempre por encima */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                   <button
                     onClick={manejarBotonLike}
                     style={{
-                      width: '46px', height: '46px', borderRadius: '50%', border: 'none',
+                      width: '50px', height: '50px', borderRadius: '50%', border: 'none',
                       backgroundColor: 'rgba(0,0,0,0.6)', color: usuarioDioLike ? '#ff0055' : '#ffffff',
-                      fontSize: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                      fontSize: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center',
                       justifyContent: 'center', transition: 'transform 0.2s ease',
-                      boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
                       transform: usuarioDioLike ? 'scale(1.15)' : 'scale(1)'
                     }}
                   >
                     ❤️
                   </button>
-                  <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 'bold', textShadow: '1px 1px 2px #000', fontFamily: 'sans-serif' }}>
+                  <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: 'bold', textShadow: '2px 2px 4px #000', fontFamily: 'sans-serif' }}>
                     {likesContador}
                   </span>
                 </div>
