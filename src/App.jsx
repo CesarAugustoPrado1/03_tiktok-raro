@@ -17,7 +17,7 @@ function App() {
   const [likesContador, setLikesContador] = useState(0);
   const [usuarioDioLike, setUsuarioDioLike] = useState(false);
 
-  // Estados nuevos para el sistema de Comentarios (Dejados para el futuro)
+  // Estados nuevos para el sistema de Comentarios (Guardados para el futuro)
   const [mostrarComentarios, setMostrarComentarios] = useState(false);
   const [listaComentarios, setListaComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState('');
@@ -380,7 +380,7 @@ function App() {
                 <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
               </div>
 
-              {/* MODIFICACIÓN: Altura calculada para no solaparse con la barra de navegación de 65px */}
+              {/* Altura de video calculada y centrada (objectFit contain) */}
               <video
                 ref={videoRef}
                 className="reproductor-principal"
@@ -406,12 +406,12 @@ function App() {
                 }}
               />
 
-              {/* BOTONERA FLOTANTE DE INTERACCIÓN (SOLO LIKES, COMENTARIOS DESACTIVADOS) */}
+              {/* BOTONERA FLOTANTE DE INTERACCIÓN (CORAZÓN ME GUSTA ACTIVO) */}
               <div style={{
                 position: 'absolute', right: '15px', bottom: '160px', zIndex: 50,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'
               }}>
-                {/* Botón de Like */}
+                {/* Botón de Like - 100% FUNCIONAL */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                   <button
                     onClick={manejarBotonLike}
@@ -430,28 +430,9 @@ function App() {
                     {likesContador}
                   </span>
                 </div>
-
-                {/* MENSAJES/COMENTARIOS DESACTIVADOS TEMPORALMENTE PERO CON EL CÓDIGO GUARDADO ABAJO */}
-                {/* <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                  <button
-                    onClick={() => setMostrarComentarios(true)}
-                    style={{
-                      width: '46px', height: '46px', borderRadius: '50%', border: 'none',
-                      backgroundColor: 'rgba(0,0,0,0.6)', color: '#ffffff',
-                      fontSize: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
-                    }}
-                  >
-                    💬
-                  </button>
-                  <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 'bold', textShadow: '1px 1px 2px #000', fontFamily: 'sans-serif' }}>
-                    {listaComentarios.length}
-                  </span>
-                </div> 
-                */}
               </div>
 
-              {/* MODIFICACIÓN: Ajustado posición 'bottom: 65px' en previews para que queden flotando 100% visibles arriba de la barra de botones */}
+              {/* Previews ajustadas arriba de la barra inferior para estar 100% visibles */}
               <div className="barra-previews" style={{ bottom: '75px', zIndex: 60 }}>
                 {previewIzquierda && (
                   <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)}>
@@ -544,7 +525,7 @@ function App() {
 
       {vistaActiva === 'mis-videos' && <MisVideos />}
 
-      {/* MENÚ DE NAVEGACIÓN MÓVIL (Alto exacto de 65px fijado) */}
+      {/* MENÚ DE NAVEGACIÓN MÓVIL (65px) */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, width: '100vw', height: '65px',
         backgroundColor: '#000000', borderTop: '1px solid #222', zIndex: 90,
