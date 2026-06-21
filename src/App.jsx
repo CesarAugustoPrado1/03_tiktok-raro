@@ -6,7 +6,7 @@ return (
       position: 'relative', 
       backgroundColor: '#000'
     }}>
-      {/* Botón flotante Logout */}
+      {/* Botón flotante Logout (zIndex alto para estar sobre el video) */}
       <button 
         onClick={manejarLogout}
         style={{
@@ -27,7 +27,7 @@ return (
             {!videoPrincipal ? (
               <div style={{ 
                 color: '#888', textAlign: 'center', paddingTop: '35vh', 
-                paddingLeft: '20px', paddingRight: '20px', fontFamily: 'sans-serif' 
+                paddingLeft: '20px', paddingRight: '20px', fontFamily: 'sans-serif', zIndex: 20, position: 'relative'
               }}>
                 <p style={{ color: '#00ffcc', fontSize: '18px', fontWeight: 'bold' }}>✨ ¡Plataforma lista!</p>
                 <p style={{ fontSize: '14px', lineHeight: '1.5' }}>Todavía no hay videos globales en la base de datos.<br />Tocá el botón <b>+</b> para subir el primero.</p>
@@ -38,7 +38,7 @@ return (
                   <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
                 </div>
 
-                {/* VIDEO PRINCIPAL: Asegura ocupar el fondo completo real sin deformar ni recortar */}
+                {/* VIDEO PRINCIPAL: AHORA SÍ, 100% PANTALLA COMPLETA REAL SIN BORDES */}
                 <video
                   ref={videoRef}
                   className="reproductor-principal"
@@ -57,18 +57,19 @@ return (
                     }
                   }}
                   style={{
-                    width: '100vw',
-                    height: '100vh',
-                    objectFit: 'cover',
-                    backgroundColor: '#000',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    zIndex: 10
+                    // ESTOS SON LOS CAMBIOS CRÍTICOS PARA EL FULL SCREEN
+                    width: '100vw',      // Ocupa el 100% del ancho de la ventana
+                    height: '100vh',     // Ocupa el 100% del alto de la ventana
+                    objectFit: 'cover',   // Cubre todo el espacio, recortando si es necesario para evitar bordes negros
+                    position: 'absolute', // Se posiciona respecto al contenedor padre
+                    top: 0,               // Pegado arriba
+                    left: 0,              // Pegado a la izquierda
+                    zIndex: 10,           // Capa base del feed
+                    backgroundColor: '#000' // Fondo negro por si acaso durante la carga
                   }}
                 />
 
-                {/* BOTONERA FLOTANTE DE INTERACCIÓN (LIKE) */}
+                {/* BOTONERA FLOTANTE DE INTERACCIÓN (LIKE) (zIndex sobre el video) */}
                 <div style={{
                   position: 'absolute', right: '15px', bottom: '280px', zIndex: 70,
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'
@@ -93,7 +94,7 @@ return (
                   </div>
                 </div>
 
-                {/* CONTENEDOR INTEGRADO EN LA BASE: Evita que las previews y el menú colisionen o se pisen */}
+                {/* CONTENEDOR INTEGRADO EN LA BASE (zIndex sobre el video) */}
                 <div style={{
                   position: 'absolute',
                   bottom: 0,
@@ -102,7 +103,7 @@ return (
                   zIndex: 60,
                   display: 'flex',
                   flexDirection: 'column',
-                  background: 'linear-gradient(to top, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0))',
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.9) 60%, rgba(0,0,0,0))', // Degradado para legibilidad
                   paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
                   boxSizing: 'border-box'
                 }}>
@@ -219,6 +220,7 @@ return (
           </>
         )}
 
+        {/* Las vistas de Descubrir y Mis Videos mantienen su fondo negro y zIndex para tapar el video del feed */}
         {vistaActiva === 'descubrir' && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 75px)', padding: '20px', paddingTop: '60px', fontFamily: 'sans-serif', color: '#fff', overflowY: 'auto', zIndex: 20, backgroundColor: '#000' }}>
             <h2 style={{ color: '#00ffcc', fontSize: '22px', marginBottom: '15px' }}>Descubrir Contenido 🔍</h2>
@@ -278,7 +280,7 @@ return (
         )}
       </div>
 
-      {/* MODALS Y INPUTS */}
+      {/* MODALS Y INPUTS (zIndex muy alto) */}
       {mostrarModal && <FormularioSubida archivo={archivoSeleccionado} alCerrar={manejarCierreModal} />}
 
       {mostrarMenuOrigen && (
