@@ -241,17 +241,17 @@ function App() {
   const calcularPreviewsFijasInstantes = (videos, indexActual, puntosInteres) => {
     if (videos.length <= 1) return { izq: 0, der: 0 };
 
-    let categoriaFavorita = 'futbol';
+    let categoryFavorita = 'futbol';
     let maxPuntos = -999;
     Object.keys(puntosInteres).forEach(cat => {
       if (puntosInteres[cat] > maxPuntos) {
         maxPuntos = puntosInteres[cat];
-        categoriaFavorita = cat;
+        categoryFavorita = cat;
       }
     });
 
     let opcionesIzquierda = videos.map((v, i) => ({ ...v, originalIndex: i }))
-      .filter(v => v.originalIndex !== indexActual && v.categoria === categoriaFavorita);
+      .filter(v => v.originalIndex !== indexActual && v.categoria === categoryFavorita);
 
     if (opcionesIzquierda.length === 0) {
       opcionesIzquierda = videos.map((v, i) => ({ ...v, originalIndex: i }))
@@ -267,7 +267,7 @@ function App() {
         .filter(v => v.originalIndex !== indexActual);
     }
     
-    const opcionesVariadas = opcionesDerecha.filter(v => v.categoria !== categoriaFavorita);
+    const opcionesVariadas = opcionesDerecha.filter(v => v.categoria !== categoryFavorita);
     const poolFinalDerecha = opcionesVariadas.length > 0 ? opcionesVariadas : opcionesDerecha;
     const der = poolFinalDerecha[Math.floor(Math.random() * poolFinalDerecha.length)].originalIndex;
 
@@ -348,7 +348,7 @@ function App() {
   const previewDerecha = listaVideos[previewsFijas.der] || null;
 
   return (
-    <div className="contenedor-tiktok" style={{ height: '100vh', overflow: 'hidden', position: 'relative' }}>
+    <div className="contenedor-tiktok" style={{ height: '100vh', overflow: 'hidden', position: 'relative', backgroundColor: '#000' }}>
       {/* Botón flotante Logout */}
       <button 
         onClick={manejarLogout}
@@ -380,7 +380,7 @@ function App() {
                 <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
               </div>
 
-              {/* Altura de video calculada y centrada (objectFit contain) */}
+              {/* Altura de video recalculada para dar espacio abajo y evitar solapamientos */}
               <video
                 ref={videoRef}
                 className="reproductor-principal"
@@ -400,18 +400,18 @@ function App() {
                 }}
                 style={{
                   width: '100%',
-                  height: 'calc(100vh - 65px)',
+                  height: 'calc(100vh - 175px)',
                   objectFit: 'contain',
-                  backgroundColor: '#000'
+                  backgroundColor: '#000',
+                  marginTop: '10px'
                 }}
               />
 
-              {/* BOTONERA FLOTANTE DE INTERACCIÓN (CORAZÓN SUBIDO AL MEDIO LATERAL) */}
+              {/* BOTONERA FLOTANTE DE INTERACCIÓN */}
               <div style={{
-                position: 'absolute', right: '15px', bottom: '45%', zIndex: 99,
+                position: 'absolute', right: '15px', bottom: '38%', zIndex: 99,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'
               }}>
-                {/* Botón de Like - Ajustado y siempre por encima */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                   <button
                     onClick={manejarBotonLike}
@@ -432,8 +432,8 @@ function App() {
                 </div>
               </div>
 
-              {/* Previews ajustadas arriba de la barra inferior para estar 100% visibles */}
-              <div className="barra-previews" style={{ bottom: '75px', zIndex: 60 }}>
+              {/* Previews ajustadas milimétricamente arriba del menú */}
+              <div className="barra-previews" style={{ bottom: '75px', zIndex: 60, height: '85px' }}>
                 {previewIzquierda && (
                   <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)}>
                     <span className="badge-categoria">{previewIzquierda.categoria}</span>
@@ -441,7 +441,7 @@ function App() {
                   </div>
                 )}
 
-                <div style={{ width: '56px', height: '56px', zIndex: 15 }}>
+                <div style={{ width: '56px', height: '56px', zIndex: 65 }}>
                   <button 
                     type="button" 
                     onClick={() => {
@@ -472,7 +472,7 @@ function App() {
       )}
 
       {vistaActiva === 'descubrir' && (
-        <div style={{ padding: '20px', paddingTop: '60px', paddingBottom: '90px', fontFamily: 'sans-serif', color: '#fff', overflowY: 'auto', height: 'calc(100vh - 150px)' }}>
+        <div style={{ padding: '20px', paddingTop: '60px', paddingBottom: '90px', fontFamily: 'sans-serif', color: '#fff', overflowY: 'auto', height: 'calc(100vh - 160px)' }}>
           <h2 style={{ color: '#00ffcc', fontSize: '22px', marginBottom: '15px' }}>Descubrir Contenido 🔍</h2>
           
           <input 
@@ -525,11 +525,12 @@ function App() {
 
       {vistaActiva === 'mis-videos' && <MisVideos />}
 
-      {/* MENÚ DE NAVEGACIÓN MÓVIL (65px) */}
+      {/* MENÚ DE NAVEGACIÓN MÓVIL ESTABLE Y SEGURO */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, width: '100vw', height: '65px',
-        backgroundColor: '#000000', borderTop: '1px solid #222', zIndex: 90,
-        display: 'flex', justifyContent: 'space-around', alignItems: 'center', paddingBottom: 'env(safe-area-inset-bottom)'
+        backgroundColor: '#000000', borderTop: '1px solid #1a1a1a', zIndex: 95,
+        display: 'flex', justifyContent: 'space-around', alignItems: 'center', 
+        paddingBottom: 'max(10px, env(safe-area-inset-bottom))', boxSizing: 'border-box'
       }}>
         <button 
           onClick={() => {
@@ -538,7 +539,7 @@ function App() {
           }}
           style={{
             background: 'none', border: 'none', color: vistaActiva === 'feed' ? '#00ffcc' : '#888888',
-            fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center'
+            fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
           }}
         >
           <span style={{ fontSize: '18px' }}>🏠</span> Inicio
@@ -551,7 +552,7 @@ function App() {
           }}
           style={{
             background: 'none', border: 'none', color: vistaActiva === 'descubrir' ? '#00ffcc' : '#888888',
-            fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center'
+            fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
           }}
         >
           <span style={{ fontSize: '18px' }}>🔍</span> Descubrir
@@ -561,8 +562,8 @@ function App() {
           <button 
             onClick={() => setMostrarMenuOrigen(true)}
             style={{ 
-              width: '42px', height: '42px', backgroundColor: '#00ffcc', color: '#000000',
-              borderRadius: '50%', border: 'none', fontSize: '24px', fontWeight: 'bold', cursor: 'pointer',
+              width: '40px', height: '40px', backgroundColor: '#00ffcc', color: '#000000',
+              borderRadius: '50%', border: 'none', fontSize: '22px', fontWeight: 'bold', cursor: 'pointer',
               boxShadow: '0 0 10px rgba(0, 255, 204, 0.4)'
             }}
           >
@@ -577,7 +578,7 @@ function App() {
           }}
           style={{
             background: 'none', border: 'none', color: vistaActiva === 'mis-videos' ? '#00ffcc' : '#888888',
-            fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center'
+            fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
           }}
         >
           <span style={{ fontSize: '18px' }}>🎬</span> Mis Videos
