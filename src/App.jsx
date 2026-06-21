@@ -1,11 +1,10 @@
 return (
     <div className="contenedor-tiktok" style={{ 
       height: '100vh', 
+      width: '100vw',
       overflow: 'hidden', 
       position: 'relative', 
-      backgroundColor: '#000',
-      display: 'flex',
-      flexDirection: 'column' // Fuerza un flujo vertical limpio de arriba a abajo
+      backgroundColor: '#000'
     }}>
       {/* Botón flotante Logout */}
       <button 
@@ -21,8 +20,8 @@ return (
         🚪 Salir
       </button>
 
-      {/* RENDERIZADO DE VISTAS (Ocupa todo el espacio dinámicamente) */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      {/* RENDERIZADO DE VISTAS */}
+      <div style={{ width: '100%', height: '100%', position: 'relative' }}>
         {vistaActiva === 'feed' && (
           <>
             {!videoPrincipal ? (
@@ -35,83 +34,87 @@ return (
               </div>
             ) : (
               <>
-                <div className="contenedor-linea-tiempo">
+                <div className="contenedor-linea-tiempo" style={{ zIndex: 75 }}>
                   <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
                 </div>
 
-                {/* El video ahora es flexible (flex: 1), se estira todo lo que puede sin generar recuadros artificiales */}
-                <div style={{ flex: 1, width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <video
-                    ref={videoRef}
-                    className="reproductor-principal"
-                    src={videoPrincipal.url_video}
-                    autoPlay
-                    playsInline
-                    controls
-                    preload="metadata"
-                    onTimeUpdate={controlarProgresoVideo}
-                    onEnded={alTerminarVideoCompleto}
-                    onClick={() => {
-                      if (videoRef.current) {
-                        videoRef.current.muted = false;
-                        if (videoRef.current.paused) videoRef.current.play();
-                        else videoRef.current.pause();
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      backgroundColor: '#000'
-                    }}
-                  />
+                {/* VIDEO PRINCIPAL: Ocupa el 100% real de la pantalla de fondo */}
+                <video
+                  ref={videoRef}
+                  className="reproductor-principal"
+                  src={videoPrincipal.url_video}
+                  autoPlay
+                  playsInline
+                  controls
+                  preload="metadata"
+                  onTimeUpdate={controlarProgresoVideo}
+                  onEnded={alTerminarVideoCompleto}
+                  onClick={() => {
+                    if (videoRef.current) {
+                      videoRef.current.muted = false;
+                      if (videoRef.current.paused) videoRef.current.play();
+                      else videoRef.current.pause();
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover', // Cambiado a 'cover' para que sea full screen real como TikTok
+                    backgroundColor: '#000',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    zIndex: 10
+                  }}
+                />
 
-                  {/* BOTONERA FLOTANTE DE INTERACCIÓN (Atada al contenedor del video, no a la pantalla global) */}
-                  <div style={{
-                    position: 'absolute', right: '15px', bottom: '20px', zIndex: 99,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'
-                  }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                      <button
-                        onClick={manejarBotonLike}
-                        style={{
-                          width: '50px', height: '50px', borderRadius: '50%', border: 'none',
-                          backgroundColor: 'rgba(0,0,0,0.6)', color: usuarioDioLike ? '#ff0055' : '#ffffff',
-                          fontSize: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', transition: 'transform 0.2s ease',
-                          boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
-                          transform: usuarioDioLike ? 'scale(1.15)' : 'scale(1)'
-                        }}
-                      >
-                        ❤️
-                      </button>
-                      <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: 'bold', textShadow: '2px 2px 4px #000', fontFamily: 'sans-serif' }}>
-                        {likesContador}
-                      </span>
-                    </div>
+                {/* BOTONERA FLOTANTE DE INTERACCIÓN (LIKE) */}
+                <div style={{
+                  position: 'absolute', right: '15px', bottom: '260px', zIndex: 70,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      onClick={manejarBotonLike}
+                      style={{
+                        width: '50px', height: '50px', borderRadius: '50%', border: 'none',
+                        backgroundColor: 'rgba(0,0,0,0.6)', color: usuarioDioLike ? '#ff0055' : '#ffffff',
+                        fontSize: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', transition: 'transform 0.2s ease',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+                        transform: usuarioDioLike ? 'scale(1.15)' : 'scale(1)'
+                      }}
+                    >
+                      ❤️
+                    </button>
+                    <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: 'bold', textShadow: '2px 2px 4px #000', fontFamily: 'sans-serif' }}>
+                      {likesContador}
+                    </span>
                   </div>
                 </div>
 
-                {/* BARRA DE PREVIEWS: Ya no es absoluta suelta, se dibuja obligatoriamente ABAJO del video */}
+                {/* BARRA DE PREVIEWS Y BOTÓN INTERMEDIO (+): Flotando justo arriba del menú */}
                 <div className="barra-previews" style={{ 
-                  position: 'relative', 
-                  bottom: 'auto', 
+                  position: 'absolute', 
+                  bottom: '85px', // Separación milimétrica para que flote limpio sobre el menú inferior
+                  left: 0,
+                  width: '100%',
                   zIndex: 60, 
                   height: '90px', 
-                  backgroundColor: '#000',
-                  paddingTop: '5px',
-                  paddingBottom: '5px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-around'
+                  justifyContent: 'space-around',
+                  padding: '0 10px',
+                  boxSizing: 'border-box'
                 }}>
                   {previewIzquierda && (
-                    <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)} style={{ margin: 0 }}>
+                    <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.izq, previewIzquierda.categoria)} style={{ margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
                       <span className="badge-categoria">{previewIzquierda.categoria}</span>
                       <video className="video-thumbnail" src={`${previewIzquierda.url_video}#t=0.5`} muted playsInline preload="metadata" />
                     </div>
                   )}
 
+                  {/* Botón Central Más (+) */}
                   <div style={{ width: '56px', height: '56px', zIndex: 65, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <button 
                       type="button" 
@@ -120,9 +123,9 @@ return (
                         setMostrarMenuOrigen(true);
                       }}
                       style={{ 
-                        width: '50px', height: '50px', backgroundColor: '#00ffcc', color: '#000000',
+                        width: '52px', height: '52px', backgroundColor: '#00ffcc', color: '#000000',
                         borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                        fontSize: '28px', fontWeight: 'bold', boxShadow: '0 0 15px rgba(0, 255, 204, 0.6)', 
+                        fontSize: '28px', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0, 255, 204, 0.6)', 
                         border: 'none', cursor: 'pointer'
                       }}
                     >
@@ -131,7 +134,7 @@ return (
                   </div>
 
                   {previewDerecha && (
-                    <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)} style={{ margin: 0 }}>
+                    <div className="tarjeta-preview" onClick={() => elegirManual(previewsFijas.der, previewDerecha.categoria)} style={{ margin: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
                       <span className="badge-categoria">{previewDerecha.categoria}</span>
                       <video className="video-thumbnail" src={`${previewDerecha.url_video}#t=0.5`} muted playsInline preload="metadata" />
                     </div>
@@ -143,7 +146,7 @@ return (
         )}
 
         {vistaActiva === 'descubrir' && (
-          <div style={{ padding: '20px', paddingTop: '60px', fontFamily: 'sans-serif', color: '#fff', overflowY: 'auto', flex: 1 }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 75px)', padding: '20px', paddingTop: '60px', fontFamily: 'sans-serif', color: '#fff', overflowY: 'auto', zIndex: 20, backgroundColor: '#000' }}>
             <h2 style={{ color: '#00ffcc', fontSize: '22px', marginBottom: '15px' }}>Descubrir Contenido 🔍</h2>
             
             <input 
@@ -194,15 +197,19 @@ return (
           </div>
         )}
 
-        {vistaActiva === 'mis-videos' && <div style={{ flex: 1, overflowY: 'auto' }}><MisVideos /></div>}
+        {vistaActiva === 'mis-videos' && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 75px)', overflowY: 'auto', zIndex: 20, backgroundColor: '#000' }}>
+            <MisVideos />
+          </div>
+        )}
       </div>
 
-      {/* MENÚ DE NAVEGACIÓN MÓVIL (Siempre se apoya abajo de todo con altura fija) */}
+      {/* MENÚ DE NAVEGACIÓN INFERIOR (Flotando con fondo traslúcido estilizado sobre el video) */}
       <div style={{
-        position: 'relative', width: '100%', height: '65px',
-        backgroundColor: '#000000', borderTop: '1px solid #1a1a1a', zIndex: 95,
+        position: 'absolute', bottom: 0, left: 0, width: '100%', height: '70px',
+        backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(255, 255, 255, 0.08)', zIndex: 95,
         display: 'flex', justifyContent: 'space-around', alignItems: 'center', 
-        paddingBottom: 'max(5px, env(safe-area-inset-bottom))', boxSizing: 'border-box'
+        paddingBottom: 'max(8px, env(safe-area-inset-bottom))', boxSizing: 'border-box'
       }}>
         <button 
           onClick={() => {
@@ -210,8 +217,8 @@ return (
             setTimeout(() => { if (videoRef.current && listaVideos.length > 0) videoRef.current.play(); }, 100);
           }}
           style={{
-            background: 'none', border: 'none', color: vistaActiva === 'feed' ? '#00ffcc' : '#888888',
-            fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+            background: 'none', border: 'none', color: vistaActiva === 'feed' ? '#00ffcc' : '#ffffff',
+            opacity: vistaActiva === 'feed' ? 1 : 0.6, fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
           }}
         >
           <span style={{ fontSize: '18px' }}>🏠</span> Inicio
@@ -223,8 +230,8 @@ return (
             setVistaActiva('descubrir');
           }}
           style={{
-            background: 'none', border: 'none', color: vistaActiva === 'descubrir' ? '#00ffcc' : '#888888',
-            fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+            background: 'none', border: 'none', color: vistaActiva === 'descubrir' ? '#00ffcc' : '#ffffff',
+            opacity: vistaActiva === 'descubrir' ? 1 : 0.6, fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
           }}
         >
           <span style={{ fontSize: '18px' }}>🔍</span> Descubrir
@@ -249,8 +256,8 @@ return (
             setVistaActiva('mis-videos');
           }}
           style={{
-            background: 'none', border: 'none', color: vistaActiva === 'mis-videos' ? '#00ffcc' : '#888888',
-            fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+            background: 'none', border: 'none', color: vistaActiva === 'mis-videos' ? '#00ffcc' : '#ffffff',
+            opacity: vistaActiva === 'mis-videos' ? 1 : 0.6, fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
           }}
         >
           <span style={{ fontSize: '18px' }}>🎬</span> Mis Videos
