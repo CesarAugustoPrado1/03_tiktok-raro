@@ -208,3 +208,36 @@ body, html, #root {
   margin-top: 8px;
   text-decoration: underline;
 }
+/* ==========================================================================
+   ESTILOS CRÍTICOS PARA DISEÑO FULLSCREEN (TIKTOK CLONE)
+   ========================================================================== */
+
+html, body, #root, .contenedor-tiktok {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  background-color: #000000 !important;
+}
+
+.reproductor-principal-full {
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  background-color: #000000 !important;
+  display: block !important;
+}
+
+/* Ajuste para pantallas móviles */
+@media (max-width: 480px) {
+  .reproductor-principal-full {
+    min-height: 100vh !important;
+    min-width: 177.77vh !important;
+    width: auto !important;
+    height: 100vh !important;
+  }
+}
