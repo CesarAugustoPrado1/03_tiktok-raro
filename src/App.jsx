@@ -119,8 +119,8 @@ function App() {
                   <div className="linea-progreso" style={{ width: `${progreso}%` }}></div>
                 </div>
 
-                {/* Reproductor de Video en Pantalla Completa */}
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: '10', overflow: 'hidden', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* Reproductor de Video en Pantalla Completa - CORREGIDO (Sin Flexbox inline conflictivo) */}
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: '10', overflow: 'hidden', backgroundColor: '#000' }}>
                   <video
                     ref={videoRef}
                     className="reproductor-principal-full"
